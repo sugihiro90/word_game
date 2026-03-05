@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>3ラウンド単語ゲーム</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; background: #f0f4f8; margin: 0; padding: 20px; touch-action: manipulation; }
+        .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 400px; margin: auto; }
+        button { background: #007bff; color: white; border: none; padding: 15px 30px; font-size: 18px; border-radius: 8px; cursor: pointer; margin: 10px; width: 80%; }
+        button:active { background: #0056b3; }
+        .hidden { display: none; }
+        .word-display { font-size: 32px; font-weight: bold; color: #333; margin: 30px 0; min-height: 80px; display: flex; align-items: center; justify-content: center; }
+        .timer { font-size: 24px; color: #ff4757; font-weight: bold; }
+        input { padding: 12px; font-size: 16px; width: 80%; margin: 5px; border: 1px solid #ccc; border-radius: 5px; }
+        .round-info { background: #e1f5fe; padding: 10px; border-radius: 5px; margin-bottom: 15px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div id="setup-screen">
+        <h2>単語を入力（1人3つ）</h2>
+        <div id="input-fields">
+            <input type="text" class="word-input" placeholder="単語1">
+            <input type="text" class="word-input" placeholder="単語2">
+            <input type="text" class="word-input" placeholder="単語3">
+        </div>
+        <button onclick="addWords()">次の人へ（入力完了）</button>
+        <button style="background:#28a745;" onclick="startGame()">全員完了！ゲーム開始</button>
+        <p>現在登録数: <span id="word-count">0</span>個</p>
+    </div>
+
+    <div id="ready-screen" class="hidden">
+        <h2 id="round-title"></h2>
+        <div class="round-info" id="round-desc"></div>
+        <p>スマホを出題者に渡してください。</p>
+        <button onclick="startTurn()">準備OK（スタート！）</button>
+    </div>
+
+    <div id="game-screen" class="hidden">
+        <div class="timer">残り: <span id="time-left">60</span>秒</div>
+        <div class="word-display" id="current-word"></div>
+        <div id="action-buttons" class="hidden">
+            <button style="background:#28a745;" onclick="nextWord()">正解！</button>
+        </div>
+    </div>
+
+    <div id="result-screen" class="hidden">
+        <h2>ラウンド終了！</h2>
+        <button onclick="prepareNextRound()">次のラウンドへ</button>
+    </div>
+</div>
+
+<script>
+    let allWords = [];
+    let currentPool = [];
+    let round = 1;
+    let timer;
+    let timeLeft;
+
+    const rounds = [
+        { title: "第1ラウンド：説明", desc: "単語以外の言葉で説明して！", time: 60 },
+        { title: "第2ラウンド：一言", desc: "たった「一単語」だけで伝えて！", time: 30 },
+        { title: "第3ラウンド：ジェスチャー", desc: "声を出さずに動きだけで表現！", time: 30 }
+    ];
+
+    function addWords() {
+        const inputs = document.querySelectorAll('.word-input');
+        let count = 0;
+        inputs.forEach(input => {
+            if(input.value.trim() !== "") {
+                allWords.push(input.value.trim());
+                input.value = "";
+                count++;
+            }
+        });
+        document.getElementById('word-count').innerText = allWords.length;
+        if(count > 0) alert("保存しました！画面を伏せて次の人に渡してください。");
+    }
+
+    function startGame() {
+        if (allWords.length === 0) return alert("単語を入力してください！");
+        prepareNextRound();
+    }
+
+    function prepareNextRound() {
+        if (round > 3) {
+            alert("全ラウンド終了！");
+            location.reload();
+            return;
+        }
+        currentPool = [...allWords];
+        shuffle(currentPool);
+        showScreen('ready-screen');
+        document.getElementById('round-title').innerText = rounds[round-1].title;
+        document.getElementById('round-desc').innerText = rounds[round-1].desc;
+    }
+
+    function startTurn() {
+        showScreen('game-screen');
+        timeLeft = rounds[round-1].time;
+        updateTimer();
+        setupNextWordDisplay();
+        
+        timer = setInterval(() => {
+            timeLeft--;
+            updateTimer();
+            if (timeLeft <= 0) {
+                clearInterval(timer);
+                alert("タイムアップ！");
+                showScreen('result-screen');
+            }
+        }, 1000);
+    }
+
+    function setupNextWordDisplay() {
+        if (currentPool.length === 0) {
+            clearInterval(timer);
+            alert("全ての単語をクリア！");
+            round++;
+            showScreen('result-screen');
+            return;
+        }
+        document.getElementById('action-buttons').classList.add('hidden');
+        document.getElementById('current-word').innerHTML = 
+            `<button style="background:#ff9f43; width:90%;" onclick="reveal()">タップしてお題を表示</button>`;
+    }
+
+    function reveal() {
+        document.getElementById('current-word').innerText = currentPool[0];
+        document.getElementById('action-buttons').classList.remove('hidden');
+    }
+
+    function nextWord() {
+        currentPool.shift();
+        setupNextWordDisplay();
+    }
+
+    function updateTimer() {
+        document.getElementById('time-left').innerText = timeLeft;
+    }
+
+    function showScreen(screenId) {
+        ['setup-screen', 'ready-screen', 'game-screen', 'result-screen'].forEach(id => {
+            document.getElementById(id).classList.add('hidden');
+        });
+        document.getElementById(screenId).classList.remove('hidden');
+    }
+
+    function shuffle(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+    }
+</script>
+</body>
+</html>
