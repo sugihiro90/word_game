@@ -3,113 +3,168 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>3ラウンド単語ゲーム</title>
+    <title>3ラウンド単語ゲーム Pro</title>
     <style>
         body { font-family: sans-serif; text-align: center; background: #f0f4f8; margin: 0; padding: 20px; touch-action: manipulation; }
         .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 400px; margin: auto; }
-        button { background: #007bff; color: white; border: none; padding: 15px 30px; font-size: 18px; border-radius: 8px; cursor: pointer; margin: 10px; width: 80%; }
-        button:active { background: #0056b3; }
+        button { background: #007bff; color: white; border: none; padding: 15px; font-size: 18px; border-radius: 8px; cursor: pointer; margin: 10px 0; width: 100%; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
         .hidden { display: none; }
-        .word-display { font-size: 32px; font-weight: bold; color: #333; margin: 30px 0; min-height: 80px; display: flex; align-items: center; justify-content: center; }
-        .timer { font-size: 24px; color: #ff4757; font-weight: bold; }
-        input { padding: 12px; font-size: 16px; width: 80%; margin: 5px; border: 1px solid #ccc; border-radius: 5px; }
-        .round-info { background: #e1f5fe; padding: 10px; border-radius: 5px; margin-bottom: 15px; font-weight: bold; }
+        .word-display { font-size: 32px; font-weight: bold; color: #333; margin: 20px 0; min-height: 80px; display: flex; align-items: center; justify-content: center; border: 2px dashed #ddd; border-radius: 10px; }
+        .timer { font-size: 24px; color: #ff4757; font-weight: bold; margin-bottom: 10px; }
+        input { padding: 12px; font-size: 16px; width: 90%; margin: 5px 0; border: 1px solid #ccc; border-radius: 5px; }
+        .team-tag { display: inline-block; padding: 5px 15px; border-radius: 20px; color: white; font-weight: bold; margin-bottom: 10px; }
+        .first-team { background: #e67e22; } /* 先攻：オレンジ */
+        .second-team { background: #9b59b6; } /* 後攻：紫 */
+        .score-board { display: flex; justify-content: space-around; margin-top: 20px; border-top: 1px solid #eee; padding-top: 10px; }
     </style>
 </head>
 <body>
 
 <div class="card">
     <div id="setup-screen">
-        <h2>単語を入力（1人3つ）</h2>
-        <div id="input-fields">
-            <input type="text" class="word-input" placeholder="単語1">
-            <input type="text" class="word-input" placeholder="単語2">
-            <input type="text" class="word-input" placeholder="単語3">
-        </div>
-        <button onclick="addWords()">次の人へ（入力完了）</button>
-        <button style="background:#28a745;" onclick="startGame()">全員完了！ゲーム開始</button>
-        <p>現在登録数: <span id="word-count">0</span>個</p>
+        <h2>ゲーム設定</h2>
+        <p>プレイヤー数</p>
+        <input type="number" id="player-count" value="4" min="2">
+        <p>1人あたりの単語数</p>
+        <input type="number" id="words-per-person" value="3" min="1">
+        <button onclick="goInput()">設定完了</button>
+    </div>
+
+    <div id="input-screen" class="hidden">
+        <h2 id="input-user-title">プレイヤー1の番</h2>
+        <div id="input-container"></div>
+        <button id="save-btn" onclick="saveUserWords()">保存しました！閉じるを押して</button>
     </div>
 
     <div id="ready-screen" class="hidden">
+        <div id="current-team-tag" class="team-tag"></div>
         <h2 id="round-title"></h2>
-        <div class="round-info" id="round-desc"></div>
-        <p>スマホを出題者に渡してください。</p>
-        <button onclick="startTurn()">準備OK（スタート！）</button>
+        <p id="round-desc"></p>
+        <div class="score-board">
+            <div>先攻: <span id="score-1">0</span></div>
+            <div>後攻: <span id="score-2">0</span></div>
+        </div>
+        <button onclick="startTurn()">準備OK！スタート</button>
     </div>
 
     <div id="game-screen" class="hidden">
-        <div class="timer">残り: <span id="time-left">60</span>秒</div>
+        <div id="game-team-tag" class="team-tag"></div>
+        <div class="timer">残り: <span id="time-left"></span>秒</div>
         <div class="word-display" id="current-word"></div>
         <div id="action-buttons" class="hidden">
-            <button style="background:#28a745;" onclick="nextWord()">正解！</button>
+            <button style="background:#28a745;" onclick="correctAnswer()">正解！</button>
         </div>
     </div>
 
     <div id="result-screen" class="hidden">
-        <h2>ラウンド終了！</h2>
-        <button onclick="prepareNextRound()">次のラウンドへ</button>
+        <h2>最終スコア</h2>
+        <h1 id="final-result"></h1>
+        <div class="score-board" style="font-size: 24px;">
+            <div>先攻: <span id="final-score-1"></span></div>
+            <div>後攻: <span id="final-score-2"></span></div>
+        </div>
+        <button onclick="location.reload()">もう一度遊ぶ</button>
     </div>
 </div>
 
 <script>
     let allWords = [];
     let currentPool = [];
+    let scores = [0, 0]; // [先攻, 後攻]
+    let currentTeam = 0; // 0:先攻, 1:後攻
     let round = 1;
+    let currentPlayerIndex = 1;
+    let maxPlayers, wordsPerPerson;
     let timer;
     let timeLeft;
 
     const rounds = [
-        { title: "第1ラウンド：説明", desc: "単語以外の言葉で説明して！", time: 60 },
-        { title: "第2ラウンド：一言", desc: "たった「一単語」だけで伝えて！", time: 30 },
-        { title: "第3ラウンド：ジェスチャー", desc: "声を出さずに動きだけで表現！", time: 30 }
+        { title: "第1ラウンド：説明", desc: "言葉を尽くして説明して！", time: 60 },
+        { title: "第2ラウンド：一言", desc: "「一単語」だけで伝えて！", time: 30 },
+        { title: "第3ラウンド：ジェスチャー", desc: "ジェスチャーのみ（無言）！", time: 30 }
     ];
 
-    function addWords() {
-        const inputs = document.querySelectorAll('.word-input');
-        let count = 0;
-        inputs.forEach(input => {
-            if(input.value.trim() !== "") {
-                allWords.push(input.value.trim());
-                input.value = "";
-                count++;
-            }
-        });
-        document.getElementById('word-count').innerText = allWords.length;
-        if(count > 0) alert("保存しました！画面を伏せて次の人に渡してください。");
+    function goInput() {
+        maxPlayers = parseInt(document.getElementById('player-count').value);
+        wordsPerPerson = parseInt(document.getElementById('words-per-person').value);
+        showInputFields();
+        showScreen('input-screen');
     }
 
-    function startGame() {
-        if (allWords.length === 0) return alert("単語を入力してください！");
-        prepareNextRound();
+    function showInputFields() {
+        const container = document.getElementById('input-container');
+        container.innerHTML = "";
+        for (let i = 0; i < wordsPerPerson; i++) {
+            const input = document.createElement('input');
+            input.type = "text";
+            input.placeholder = `単語 ${i + 1}`;
+            input.className = "word-input";
+            input.oninput = checkInputs; // 入力するたびにチェック
+            container.appendChild(input);
+        }
+        checkInputs();
+    }
+
+    function checkInputs() {
+        const inputs = document.querySelectorAll('.word-input');
+        const allFilled = Array.from(inputs).every(input => input.value.trim() !== "");
+        document.getElementById('save-btn').disabled = !allFilled;
+    }
+
+    function saveUserWords() {
+        const inputs = document.querySelectorAll('.word-input');
+        inputs.forEach(input => allWords.push(input.value.trim()));
+        
+        if (currentPlayerIndex < maxPlayers) {
+            currentPlayerIndex++;
+            document.getElementById('input-user-title').innerText = `プレイヤー${currentPlayerIndex}の番`;
+            showInputFields();
+        } else {
+            prepareNextRound();
+        }
     }
 
     function prepareNextRound() {
-        if (round > 3) {
-            alert("全ラウンド終了！");
-            location.reload();
-            return;
-        }
+        if (round > 3) return endGame();
         currentPool = [...allWords];
         shuffle(currentPool);
         showScreen('ready-screen');
+        updateStatusDisplay();
+    }
+
+    function updateStatusDisplay() {
+        const teamName = currentTeam === 0 ? "先攻チーム" : "後攻チーム";
+        const tagClass = currentTeam === 0 ? "team-tag first-team" : "team-tag second-team";
+        
+        document.getElementById('current-team-tag').innerText = teamName;
+        document.getElementById('current-team-tag').className = tagClass;
         document.getElementById('round-title').innerText = rounds[round-1].title;
         document.getElementById('round-desc').innerText = rounds[round-1].desc;
+        document.getElementById('score-1').innerText = scores[0];
+        document.getElementById('score-2').innerText = scores[1];
     }
 
     function startTurn() {
         showScreen('game-screen');
         timeLeft = rounds[round-1].time;
-        updateTimer();
+        
+        const tagClass = currentTeam === 0 ? "team-tag first-team" : "team-tag second-team";
+        document.getElementById('game-team-tag').innerText = currentTeam === 0 ? "先攻チーム" : "後攻チーム";
+        document.getElementById('game-team-tag').className = tagClass;
+        
+        updateTimerDisplay();
         setupNextWordDisplay();
         
         timer = setInterval(() => {
             timeLeft--;
-            updateTimer();
+            updateTimerDisplay();
             if (timeLeft <= 0) {
                 clearInterval(timer);
-                alert("タイムアップ！");
-                showScreen('result-screen');
+                alert("タイムアップ！交代です。");
+                currentTeam = 1 - currentTeam; // チーム交代
+                showScreen('ready-screen');
+                updateStatusDisplay();
             }
         }, 1000);
     }
@@ -117,14 +172,15 @@
     function setupNextWordDisplay() {
         if (currentPool.length === 0) {
             clearInterval(timer);
-            alert("全ての単語をクリア！");
+            alert("全ての単語を使い切りました！次のラウンドへ。");
             round++;
-            showScreen('result-screen');
+            currentTeam = 1 - currentTeam; // 交代
+            prepareNextRound();
             return;
         }
         document.getElementById('action-buttons').classList.add('hidden');
         document.getElementById('current-word').innerHTML = 
-            `<button style="background:#ff9f43; width:90%;" onclick="reveal()">タップしてお題を表示</button>`;
+            `<button style="background:#ff9f43; width:80%;" onclick="reveal()">タップして表示</button>`;
     }
 
     function reveal() {
@@ -132,17 +188,26 @@
         document.getElementById('action-buttons').classList.remove('hidden');
     }
 
-    function nextWord() {
+    function correctAnswer() {
+        scores[currentTeam]++;
         currentPool.shift();
         setupNextWordDisplay();
     }
 
-    function updateTimer() {
+    function updateTimerDisplay() {
         document.getElementById('time-left').innerText = timeLeft;
     }
 
+    function endGame() {
+        showScreen('result-screen');
+        document.getElementById('final-score-1').innerText = scores[0];
+        document.getElementById('final-score-2').innerText = scores[1];
+        let winMsg = scores[0] > scores[1] ? "先攻チームの勝ち！" : (scores[0] < scores[1] ? "後攻チームの勝ち！" : "引き分け！");
+        document.getElementById('final-result').innerText = winMsg;
+    }
+
     function showScreen(screenId) {
-        ['setup-screen', 'ready-screen', 'game-screen', 'result-screen'].forEach(id => {
+        ['setup-screen', 'input-screen', 'ready-screen', 'game-screen', 'result-screen'].forEach(id => {
             document.getElementById(id).classList.add('hidden');
         });
         document.getElementById(screenId).classList.remove('hidden');
