@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>3 ROUNDS WORD GAME - Custom Match</title>
+    <title>3 ROUNDS WORD GAME</title>
     <style>
         body { font-family: 'Helvetica Neue', Arial, sans-serif; text-align: center; background: #f0f4f8; margin: 0; padding: 20px; color: #333; }
         .card { background: white; padding: 30px 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); max-width: 450px; margin: auto; min-height: 500px; display: flex; flex-direction: column; }
@@ -30,9 +30,22 @@
 
 <div class="card">
     <div id="title-screen">
-        <h1 style="color:#007bff; margin-top:0;">3 ROUNDS<br>WORD GAME</h1>
-        <p style="font-size:14px; color:#666;">〜 5年越しの想いを形に 〜</p>
-        <button onclick="showScreen('setup-screen')">ゲーム設定へ</button>
+        <h1 style="color:#007bff; margin-top:40px; font-size: 42px;">3 ROUNDS<br>WORD GAME</h1>
+        <div style="margin-top: 60px;">
+            <button onclick="showScreen('setup-screen')">ゲームスタート</button>
+            <button class="outline" onclick="showScreen('rule-screen')">ルール説明</button>
+        </div>
+    </div>
+
+    <div id="rule-screen" class="hidden">
+        <h2>ルール</h2>
+        <div style="text-align:left; font-size:14px; line-height:1.6; background:#f8f9fa; padding:15px; border-radius:10px; margin-bottom:15px;">
+            同じ単語リストで3回戦います。<br><br>
+            <strong>R1：説明</strong> (言葉で伝える)<br>
+            <strong>R2：一言</strong> (ヒントは1単語だけ)<br>
+            <strong>R3：ジェスチャー</strong> (無言で動く)
+        </div>
+        <button class="secondary" onclick="showScreen('title-screen')">戻る</button>
     </div>
 
     <div id="setup-screen" class="hidden">
@@ -50,7 +63,7 @@
         <div style="margin: 10px 0; font-size: 14px;">
             <input type="checkbox" id="show-author-setting" checked style="width:auto;"> 最後に名前を表示する
         </div>
-        <button onclick="initPlayers()">次へ：名前と単語の入力</button>
+        <button onclick="initPlayers()">次へ</button>
     </div>
 
     <div id="input-screen" class="hidden">
@@ -67,7 +80,7 @@
         <p style="font-size:18px;">次は <strong><span id="next-player-name"></span></strong> さん！</p>
         <p id="round-desc" style="color:#666; font-size:14px;"></p>
         <div style="margin:10px 0;">A: <span id="score-a">0</span> | B: <span id="score-b">0</span></div>
-        <button onclick="startTurn()">スタート！</button>
+        <button onclick="startTurn()">準備OK！スタート</button>
     </div>
 
     <div id="game-screen" class="hidden">
@@ -83,19 +96,18 @@
         <h1 id="winner-text"></h1>
         <div id="final-scores" style="font-size:20px; margin-bottom:20px;"></div>
         <div class="stats-box">
-            <div style="font-weight:bold; border-bottom:2px solid #007bff; margin-bottom:10px;">🏆 プレイヤー回答速度 (平均)</div>
+            <div style="font-weight:bold; border-bottom:2px solid #007bff; margin-bottom:10px;">🏆 プレイヤー回答速度ランク</div>
             <div id="player-ranking"></div>
         </div>
         <div class="stats-box">
-            <div style="font-weight:bold; border-bottom:2px solid #007bff; margin-bottom:10px;">💎 単語スピード (平均)</div>
+            <div style="font-weight:bold; border-bottom:2px solid #007bff; margin-bottom:10px;">💎 単語正解スピードランク</div>
             <div id="word-ranking"></div>
         </div>
-        <button onclick="location.reload()">最初から遊ぶ</button>
+        <button onclick="location.reload()">タイトルに戻る</button>
     </div>
 </div>
 
 <script>
-    // プルダウンの生成
     function createOptions(id, min, max) {
         const sel = document.getElementById(id);
         for(let i=min; i<=max; i++) {
@@ -199,8 +211,7 @@
             document.getElementById('time-left').innerText = timeLeft;
             if (timeLeft <= 0) {
                 clearInterval(timer);
-                alert("タイムアップ！次は相手チームの番です。");
-                // 交代処理（ただし、このプレイヤーは次回の自チーム番で継続）
+                alert("タイムアップ！交代です。");
                 turnTeam = (turnTeam === 'A') ? 'B' : 'A';
                 startRoundSetup();
             }
@@ -232,9 +243,8 @@
         
         scores[turnTeam]++;
         currentPool.shift();
-        shuffle(currentPool); // 正解した後は常にシャッフル
+        shuffle(currentPool);
         
-        // 正解したので、このチームの次回の番は「次の人」に回す準備をする
         if (turnTeam === 'A') indexA = (indexA + 1) % playersA.length;
         else indexB = (indexB + 1) % playersB.length;
 
@@ -246,7 +256,6 @@
         document.getElementById('winner-text').innerText = scores.A > scores.B ? "Aチーム勝利！" : (scores.B > scores.A ? "Bチーム勝利！" : "引き分け！");
         document.getElementById('final-scores').innerText = `A: ${scores.A} | B: ${scores.B}`;
 
-        // プレイヤー分析
         const pStats = {};
         solveRecords.forEach(r => {
             if(!pStats[r.solver]) pStats[r.solver] = {t:0, c:0};
@@ -255,14 +264,13 @@
         const pRank = Object.keys(pStats).map(n => ({n, avg: pStats[n].t / pStats[n].c})).sort((a,b)=>a.avg-b.avg);
         document.getElementById('player-ranking').innerHTML = pRank.map((p,i)=>`<div class="stats-item"><span>${i+1}. ${p.n}</span><span>${p.avg.toFixed(1)}s</span></div>`).join('');
 
-        // 単語分析
         const wStats = {};
         solveRecords.forEach(r => {
             if(!wStats[r.text]) wStats[r.text] = {t:0, c:0, a:r.author};
             wStats[r.text].t += r.time; wStats[r.text].c++;
         });
-        const wRank = Object.keys(wStats).map(txt => ({txt, avg: wStats[txt].t/wStats[txt].count, a: wStats[txt].a})).sort((a,b)=>a.avg-b.avg);
-        document.getElementById('word-ranking').innerHTML = wRank.slice(0,5).map((w,i)=>`<div class="stats-item"><span>${i+1}. ${w.txt}${showAuthor?' <small>('+w.a+')</small>':''}</span><span>${w.avg.toFixed(1)}s</span></div>`).join('');
+        const wRank = Object.keys(wStats).map(txt => ({txt, avg: wStats[txt].t / wStats[txt].c, a: wStats[txt].a})).sort((a,b)=>a.avg-b.avg);
+        document.getElementById('word-ranking').innerHTML = wRank.slice(0,10).map((w,i)=>`<div class="stats-item"><span>${i+1}. ${w.txt}${showAuthor?' <small>('+w.a+')</small>':''}</span><span>${w.avg.toFixed(1)}s</span></div>`).join('');
     }
 
     function shuffle(array) {
