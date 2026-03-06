@@ -265,7 +265,7 @@
         // ★修正：Round 2, 3 の時だけ暫定スコアを表示
         const scoreEl = document.getElementById('interim-score');
         if (round > 1) {
-            scoreEl.innerText = `現在スコア Aチーム: ${scores.A} | Bチーム: ${scores.B}`;
+            scoreEl.innerText = `暫定スコア Aチーム: ${scores.A} | Bチーム: ${scores.B}`;
             scoreEl.classList.remove('hidden');
             // 負けているチームから開始
             if (scores.A !== scores.B) turnTeam = (scores.A < scores.B) ? 'A' : 'B';
