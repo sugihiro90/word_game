@@ -69,8 +69,10 @@
         .error-hint { color: #dc3545; font-size: 12px; margin-top: -5px; margin-bottom: 10px; height: 15px; }
 
         #action-buttons { margin-top: 60px; }
-        /* 残り単語数のバッジ */
         .word-counter { font-size: 14px; color: #666; background: #eee; padding: 4px 10px; border-radius: 10px; margin-left: 10px; vertical-align: middle; }
+
+        /* 暫定スコアの表示スタイル */
+        .interim-score-box { background: #fdfdfd; border: 1px solid #eee; padding: 10px; border-radius: 10px; margin: 10px 0; font-weight: bold; font-size: 16px; }
     </style>
 </head>
 <body>
@@ -113,6 +115,7 @@
     <div id="ready-screen" class="hidden">
         <div id="current-team-tag" class="team-tag"></div>
         <h2 id="round-info"></h2>
+        <div id="interim-score" class="interim-score-box hidden"></div>
         <div class="relay-msg">次は <strong id="next-player-name"></strong> さん！</div>
         <p id="round-desc" style="color:#666; font-size:14px;"></p>
         <button onclick="startTurn()">スタート！</button>
@@ -188,7 +191,7 @@
 
     function initPlayers() {
         isNameOn = document.getElementById('name-mode-switch').checked;
-        playersA = []; playersB = []; allWordObjects = [];
+        playersA = []; playersB = []; allWordObjects = []; scores = {A:0, B:0}; round = 1; indexA = 0; indexB = 0;
         showInputFor('A', 0);
     }
 
@@ -258,7 +261,18 @@
 
     function startRoundSetup() {
         if (round > 3) return showFinalResults();
-        if (round > 1 && scores.A !== scores.B) turnTeam = (scores.A < scores.B) ? 'A' : 'B';
+        
+        // ★修正：Round 2, 3 の時だけ暫定スコアを表示
+        const scoreEl = document.getElementById('interim-score');
+        if (round > 1) {
+            scoreEl.innerText = `現在スコア Aチーム: ${scores.A} | Bチーム: ${scores.B}`;
+            scoreEl.classList.remove('hidden');
+            // 負けているチームから開始
+            if (scores.A !== scores.B) turnTeam = (scores.A < scores.B) ? 'A' : 'B';
+        } else {
+            scoreEl.classList.add('hidden');
+        }
+
         currentPool = [...allWordObjects];
         shuffle(currentPool);
         showScreen('ready-screen');
@@ -293,10 +307,7 @@
     }
 
     function showNextWord() {
-        // ここでの判定は、リレー（次の方へ）が押された時のみ機能
-        if (currentPool.length === 0) {
-            return finishRound();
-        }
+        if (currentPool.length === 0) return finishRound();
         document.getElementById('relay-overlay').classList.add('hidden');
         document.getElementById('word-area').classList.remove('hidden');
         document.getElementById('current-speaker-name').innerText = (turnTeam === 'A') ? playersA[indexA] : playersB[indexB];
@@ -316,16 +327,15 @@
         solveRecords.push({ text: currentPool[0].text, author: currentPool[0].author, solver: currentSpeaker, time: duration, round: round });
         scores[turnTeam]++;
         currentPool.shift();
-        updateWordCount(); // 数を減らす
+        updateWordCount();
         
-        // ★修正ポイント：単語がなくなったら即終了
         if (currentPool.length === 0) {
             clearInterval(timer);
             setTimeout(() => {
                 alert("ラウンド終了！");
                 round++;
                 startRoundSetup();
-            }, 300); // 少し余韻を残して終了
+            }, 300);
             return;
         }
 
