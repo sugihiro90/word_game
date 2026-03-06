@@ -203,7 +203,10 @@
         const count = parseInt(document.getElementById('count-' + team.toLowerCase()).value);
         if (idx >= count) {
             if (team === 'A') return showInputFor('B', 0);
-            else return startRoundSetup();
+            else {
+                currentPool = []; // 初期化
+                return startRoundSetup(true); 
+            }
         }
         const tag = document.getElementById('input-team-tag');
         tag.innerText = team + "チーム";
@@ -263,21 +266,23 @@
         { name: "Round 3: ジェスチャー", desc: "声を出さずに動きだけで伝える！", time: 30 }
     ];
 
-    function startRoundSetup() {
+    function startRoundSetup(isNewRound = false) {
         if (round > 3) return showFinalResults();
         
-        // ★修正：Round 2, 3 の時だけ暫定スコアを表示
         const scoreEl = document.getElementById('interim-score');
         if (round > 1) {
             scoreEl.innerText = `暫定スコア Aチーム: ${scores.A} | Bチーム: ${scores.B}`;
             scoreEl.classList.remove('hidden');
-            // 負けているチームから開始
             if (scores.A !== scores.B) turnTeam = (scores.A < scores.B) ? 'A' : 'B';
         } else {
             scoreEl.classList.add('hidden');
         }
 
-        currentPool = [...allWordObjects];
+        // ★修正：新しいラウンドか、プールが空の時だけ全単語を入れる
+        if (isNewRound || currentPool.length === 0) {
+            currentPool = [...allWordObjects];
+        }
+        
         shuffle(currentPool);
         showScreen('ready-screen');
         const name = (turnTeam === 'A') ? playersA[indexA] : playersB[indexB];
@@ -301,7 +306,7 @@
                 clearInterval(timer);
                 alert("タイムアップ！交代です。");
                 turnTeam = (turnTeam === 'A') ? 'B' : 'A';
-                startRoundSetup();
+                startRoundSetup(false); // タイムアップ時は継続（false）
             }
         }, 1000);
     }
@@ -338,7 +343,7 @@
             setTimeout(() => {
                 alert("ラウンド終了！");
                 round++;
-                startRoundSetup();
+                startRoundSetup(true); // 全問正解時は新ラウンド（true）
             }, 300);
             return;
         }
@@ -355,7 +360,7 @@
         clearInterval(timer);
         alert("ラウンド終了！"); 
         round++;
-        startRoundSetup();
+        startRoundSetup(true);
     }
 
     function showFinalResults() {
