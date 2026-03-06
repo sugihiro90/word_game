@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>3 ROUNDS WORD GAME</title>
+    <title>マッタンゴ - 3 ROUNDS WORD GAME</title>
     <style>
         html, body { 
             overflow: hidden; 
@@ -70,8 +70,6 @@
 
         #action-buttons { margin-top: 60px; }
         .word-counter { font-size: 14px; color: #666; background: #eee; padding: 4px 10px; border-radius: 10px; margin-left: 10px; vertical-align: middle; }
-
-        /* 暫定スコアの表示スタイル */
         .interim-score-box { background: #fdfdfd; border: 1px solid #eee; padding: 10px; border-radius: 10px; margin: 10px 0; font-weight: bold; font-size: 16px; }
     </style>
 </head>
@@ -79,7 +77,7 @@
 
 <div class="card">
     <div id="title-screen">
-        <h1 style="color:#007bff; margin-top:40px;">マッタンゴ</h1>
+        <h1 style="color:#007bff; margin-top:40px; font-size: 42px; line-height: 1.1;">マッタンゴ</h1>
         <button onclick="showScreen('setup-screen')">ゲームスタート</button>
     </div>
 
@@ -168,6 +166,21 @@
 </div>
 
 <script>
+    // --- スリープ防止機能 (Wake Lock API) ---
+    let wakeLock = null;
+    const requestWakeLock = async () => {
+        try {
+            if ('wakeLock' in navigator) {
+                wakeLock = await navigator.wakeLock.request('screen');
+            }
+        } catch (err) {
+            console.error(`Wake Lock error: ${err.message}`);
+        }
+    };
+    document.addEventListener('visibilitychange', async () => {
+        if (wakeLock !== null && document.visibilityState === 'visible') await requestWakeLock();
+    });
+
     function createOptions(id, min, max) {
         const sel = document.getElementById(id);
         for(let i=min; i<=max; i++) {
@@ -187,6 +200,12 @@
     let turnTeam = 'A', indexA = 0, indexB = 0;
     let timer, timeLeft, startTime, isNameOn;
 
+    const roundData = [
+        { name: "Round 1: 説明", desc: "言葉で説明して！(単語そのものはNG)", time: 60 },
+        { name: "Round 2: 一単語", desc: "ヒントは「一単語」だけ！", time: 30 },
+        { name: "Round 3: ジェスチャー", desc: "声を出さずに動きだけで伝える！", time: 30 }
+    ];
+
     function showScreen(id) {
         document.querySelectorAll('.card > div').forEach(d => d.classList.add('hidden'));
         document.getElementById(id).classList.remove('hidden');
@@ -194,6 +213,7 @@
     }
 
     function initPlayers() {
+        requestWakeLock(); // スリープ防止開始
         isNameOn = document.getElementById('name-mode-switch').checked;
         playersA = []; playersB = []; allWordObjects = []; scores = {A:0, B:0}; round = 1; indexA = 0; indexB = 0;
         showInputFor('A', 0);
@@ -204,7 +224,7 @@
         if (idx >= count) {
             if (team === 'A') return showInputFor('B', 0);
             else {
-                currentPool = []; // 初期化
+                currentPool = [];
                 return startRoundSetup(true); 
             }
         }
@@ -225,7 +245,7 @@
         const wCount = document.getElementById('words-count').value;
         for(let i=0; i<wCount; i++) {
             const inp = document.createElement('input');
-            inp.placeholder = `単語 ${i+1} (最大20字)`;
+            inp.placeholder = `単語 ${i+1}`;
             inp.maxLength = 20;
             inp.className = "word-input";
             inp.oninput = validateForm;
@@ -240,13 +260,7 @@
         const words = document.querySelectorAll('.word-input');
         const isNameOk = name !== "" && name.length <= 10;
         const allWordsFilled = Array.from(words).every(w => w.value.trim() !== "");
-        const allFilled = isNameOk && allWordsFilled;
-        document.getElementById('save-btn').disabled = !allFilled;
-        if (!isNameOk && name !== "") {
-            document.getElementById('input-error').innerText = "名前は10文字以内で入力してください";
-        } else {
-            document.getElementById('input-error').innerText = allFilled ? "" : "全て入力してください";
-        }
+        document.getElementById('save-btn').disabled = !(isNameOk && allWordsFilled);
     }
 
     function saveCurrentPlayer() {
@@ -260,25 +274,21 @@
         showInputFor(team, idx);
     }
 
-    const roundData = [
-        { name: "Round 1: 説明", desc: "言葉で説明して！(単語そのものはNG)", time: 60 },
-        { name: "Round 2: 一単語", desc: "ヒントは「一単語」だけ！", time: 30 },
-        { name: "Round 3: ジェスチャー", desc: "声を出さずに動きだけで伝える！", time: 30 }
-    ];
-
     function startRoundSetup(isNewRound = false) {
         if (round > 3) return showFinalResults();
         
         const scoreEl = document.getElementById('interim-score');
         if (round > 1) {
-            scoreEl.innerText = `暫定スコア Aチーム: ${scores.A} | Bチーム: ${scores.B}`;
+            scoreEl.innerText = `暫定スコア A: ${scores.A} | B: ${scores.B}`;
             scoreEl.classList.remove('hidden');
-            if (scores.A !== scores.B) turnTeam = (scores.A < scores.B) ? 'A' : 'B';
+            // 新ラウンド開始時のみ、負けているチームから
+            if (isNewRound && scores.A !== scores.B) {
+                turnTeam = (scores.A < scores.B) ? 'A' : 'B';
+            }
         } else {
             scoreEl.classList.add('hidden');
         }
 
-        // ★修正：新しいラウンドか、プールが空の時だけ全単語を入れる
         if (isNewRound || currentPool.length === 0) {
             currentPool = [...allWordObjects];
         }
@@ -289,6 +299,10 @@
         document.getElementById('next-player-name').innerText = name;
         document.getElementById('round-info').innerText = roundData[round-1].name;
         document.getElementById('round-desc').innerText = roundData[round-1].desc;
+        
+        const rTag = document.getElementById('current-team-tag');
+        rTag.innerText = turnTeam + "チーム";
+        rTag.className = "team-tag team-" + turnTeam.toLowerCase();
     }
 
     function startTurn() {
@@ -299,6 +313,8 @@
         document.getElementById('game-team-tag').className = "team-tag team-" + turnTeam.toLowerCase();
         updateWordCount();
         showNextWord();
+        
+        if(timer) clearInterval(timer);
         timer = setInterval(() => {
             timeLeft--;
             document.getElementById('time-left').innerText = timeLeft;
@@ -306,7 +322,7 @@
                 clearInterval(timer);
                 alert("タイムアップ！交代です。");
                 turnTeam = (turnTeam === 'A') ? 'B' : 'A';
-                startRoundSetup(false); // タイムアップ時は継続（false）
+                startRoundSetup(false);
             }
         }, 1000);
     }
@@ -343,7 +359,7 @@
             setTimeout(() => {
                 alert("ラウンド終了！");
                 round++;
-                startRoundSetup(true); // 全問正解時は新ラウンド（true）
+                startRoundSetup(true);
             }, 300);
             return;
         }
@@ -381,7 +397,7 @@
         });
         const wRank = Object.keys(wStats).map(txt => ({txt, avg: wStats[txt].t / wStats[txt].c, a: wStats[txt].a})).sort((a,b)=>a.avg-b.avg);
         document.getElementById('word-ranking').innerHTML = wRank.slice(0,3).map((w,i)=>`<div class="stats-item"><span>${i+1}位. ${w.txt}</span><span>${w.avg.toFixed(1)}秒</span></div>`).join('') || "記録なし";
-        document.getElementById('all-words-list').innerHTML = wRank.map(w => `<div class="stats-box"><div class="stats-item"><strong>${w.txt}</strong><span>by ${w.a}</span></div><div style="font-size:12px; color:#666;">平均正解スピード: ${w.avg.toFixed(2)}秒</div></div>`).join('');
+        document.getElementById('all-words-list').innerHTML = wRank.map(w => `<div class="stats-box"><div class="stats-item"><strong>${w.txt}</strong><span>by ${w.a}</span></div><div style="font-size:12px; color:#666;">平均スピード: ${w.avg.toFixed(2)}秒</div></div>`).join('');
     }
 
     function shuffle(array) {
@@ -392,16 +408,11 @@
     }
 
     let startY = 0;
-    document.addEventListener('touchstart', (e) => {
-        startY = e.touches[0].pageY;
-    }, { passive: false });
-
+    document.addEventListener('touchstart', (e) => { startY = e.touches[0].pageY; }, { passive: false });
     document.addEventListener('touchmove', (e) => {
         const y = e.touches[0].pageY;
         const scroller = document.querySelector('.card');
-        if (scroller.scrollTop <= 0 && y > startY) {
-            if (e.cancelable) e.preventDefault();
-        }
+        if (scroller.scrollTop <= 0 && y > startY) if (e.cancelable) e.preventDefault();
     }, { passive: false });
 </script>
 </body>
