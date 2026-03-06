@@ -142,11 +142,11 @@
         <div id="final-scores" style="font-size:18px; margin-bottom:15px;"></div>
         
         <div class="stats-box">
-            <div style="font-weight:bold; border-bottom:2px solid #007bff; margin-bottom:8px;">🏆 回答速度 TOP3</div>
+            <div style="font-weight:bold; border-bottom:2px solid #007bff; margin-bottom:8px;">🏆 表現上手 TOP3</div>
             <div id="player-ranking"></div>
         </div>
         <div class="stats-box">
-            <div style="font-weight:bold; border-bottom:2px solid #007bff; margin-bottom:8px;">💎 伝わりやすい単語 TOP3</div>
+            <div style="font-weight:bold; border-bottom:2px solid #007bff; margin-bottom:8px;">💎 かんたん単語 TOP3</div>
             <div id="word-ranking"></div>
         </div>
         <button class="outline" onclick="showScreen('all-words-screen')">すべての単語データを見る</button>
@@ -347,7 +347,7 @@
     function showFinalResults() {
         showScreen('result-screen');
         document.getElementById('winner-text').innerText = scores.A > scores.B ? "Aチーム勝利！" : (scores.B > scores.A ? "Bチーム勝利！" : "引き分け！");
-        document.getElementById('final-scores').innerText = `最終スコア A: ${scores.A} | B: ${scores.B}`;
+        document.getElementById('final-scores').innerText = `最終スコア Aチーム: ${scores.A} | Bチーム: ${scores.B}`;
         const pStats = {};
         solveRecords.forEach(r => {
             if(!pStats[r.solver]) pStats[r.solver] = {t:0, c:0};
