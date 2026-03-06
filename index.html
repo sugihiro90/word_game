@@ -5,25 +5,42 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>3 ROUNDS WORD GAME</title>
     <style>
-        html, body {
-    overscroll-behavior-y: none;
-    height: 100%;
-    width: 100%;
-    position: fixed; /* 👈 これがiPhoneなどの「引っ張り更新」を物理的に止める最強の対策です */
-    overflow: hidden;
-}
+        /* 画面全体のスクロール（引っ張り更新）を禁止する設定 */
+        html, body { 
+            overflow: hidden; 
+            height: 100%; 
+            width: 100%; 
+            margin: 0; 
+            padding: 0; 
+            overscroll-behavior-y: none; /* Chrome/Android用 */
+            position: fixed; /* iOS Safari用：画面を固定して引っ張らせない */
+        }
 
-body {
-    font-family: 'Helvetica Neue', Arial, sans-serif;
-    text-align: center;
-    background: #f0f4f8;
-    margin: 0;
-    padding: 20px;
-    color: #333;
-    display: flex;
-    flex-direction: column;
-}
-        .card { background: white; padding: 30px 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); max-width: 450px; margin: auto; min-height: 550px; display: flex; flex-direction: column; position: relative; }
+        body { 
+            font-family: 'Helvetica Neue', Arial, sans-serif; 
+            text-align: center; 
+            background: #f0f4f8; 
+            color: #333; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .card { 
+            background: white; 
+            padding: 30px 20px; 
+            border-radius: 20px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
+            width: 90%; 
+            max-width: 400px; 
+            height: 90vh; /* 画面に収まる高さ */
+            display: flex; 
+            flex-direction: column; 
+            position: relative; 
+            box-sizing: border-box;
+            overflow-y: auto; /* カード内だけは必要ならスクロール可能にする */
+        }
+
         .hidden { display: none; }
         button { background: #007bff; color: white; border: none; padding: 16px; font-size: 16px; border-radius: 12px; cursor: pointer; margin: 8px 0; width: 100%; font-weight: bold; transition: 0.2s; }
         button:disabled { background: #ccc; cursor: not-allowed; }
@@ -52,6 +69,9 @@ body {
         .stats-box { text-align: left; background: #fff; border: 1px solid #eee; border-radius: 12px; padding: 15px; margin-bottom: 15px; }
         .stats-item { display: flex; justify-content: space-between; font-size: 13px; padding: 6px 0; border-bottom: 1px dashed #eee; }
         .error-hint { color: #dc3545; font-size: 12px; margin-top: -5px; margin-bottom: 10px; height: 15px; }
+
+        /* 「正解！」ボタンの位置調整 */
+        #action-buttons { margin-top: 60px; }
     </style>
 </head>
 <body>
@@ -161,6 +181,8 @@ body {
     function showScreen(id) {
         document.querySelectorAll('.card > div').forEach(d => d.classList.add('hidden'));
         document.getElementById(id).classList.remove('hidden');
+        // 画面切り替え時に一番上に戻す
+        document.querySelector('.card').scrollTop = 0;
     }
 
     function initPlayers() {
@@ -196,7 +218,7 @@ body {
         for(let i=0; i<wCount; i++) {
             const inp = document.createElement('input');
             inp.placeholder = `単語 ${i+1} (最大20字)`;
-            inp.maxLength = 20; // 荒らし対策
+            inp.maxLength = 20;
             inp.className = "word-input";
             inp.oninput = validateForm;
             container.appendChild(inp);
@@ -206,32 +228,26 @@ body {
     }
 
     function validateForm() {
-    const name = document.getElementById('user-name').value.trim();
-    const words = document.querySelectorAll('.word-input');
-    
-    // 名前のチェック条件を10文字以下に変更
-    const isNameOk = name !== "" && name.length <= 10;
-    // 単語の入力チェック（単語の20字制限は、inputタグのmaxLengthで自動ガードされています）
-    const allWordsFilled = Array.from(words).every(w => w.value.trim() !== "");
-    const allFilled = isNameOk && allWordsFilled;
-    document.getElementById('save-btn').disabled = !allFilled;
-    // エラーメッセージも少し親切に
-    if (!isNameOk && name !== "") {
-        document.getElementById('input-error').innerText = "名前は10文字以内で入力してください";
-    } else {
-        document.getElementById('input-error').innerText = allFilled ? "" : "全て入力してください";
+        const name = document.getElementById('user-name').value.trim();
+        const words = document.querySelectorAll('.word-input');
+        const isNameOk = name !== "" && name.length <= 10;
+        const allWordsFilled = Array.from(words).every(w => w.value.trim() !== "");
+        const allFilled = isNameOk && allWordsFilled;
+        document.getElementById('save-btn').disabled = !allFilled;
+        if (!isNameOk && name !== "") {
+            document.getElementById('input-error').innerText = "名前は10文字以内で入力してください";
+        } else {
+            document.getElementById('input-error').innerText = allFilled ? "" : "全て入力してください";
+        }
     }
-}
 
     function saveCurrentPlayer() {
         const teamMatch = document.getElementById('input-team-tag').innerText;
         const team = teamMatch.includes('A') ? 'A' : 'B';
         const name = document.getElementById('user-name').value.trim();
         const words = document.querySelectorAll('.word-input');
-        
         if (team === 'A') playersA.push(name); else playersB.push(name);
         words.forEach(w => allWordObjects.push({text: w.value.trim(), author: name}));
-        
         const idx = (team === 'A' ? playersA : playersB).length;
         showInputFor(team, idx);
     }
@@ -256,12 +272,11 @@ body {
 
     function startTurn() {
         showScreen('game-screen');
-        timeLeft = roundData[round-1].time; // ラウンド別時間設定
+        timeLeft = roundData[round-1].time;
         document.getElementById('time-left').innerText = timeLeft;
         document.getElementById('game-team-tag').innerText = turnTeam + "チーム";
         document.getElementById('game-team-tag').className = "team-tag team-" + turnTeam.toLowerCase();
         showNextWord();
-        
         timer = setInterval(() => {
             timeLeft--;
             document.getElementById('time-left').innerText = timeLeft;
@@ -297,14 +312,11 @@ body {
         const duration = (Date.now() - startTime) / 1000;
         const currentSpeaker = (turnTeam === 'A') ? playersA[indexA] : playersB[indexB];
         solveRecords.push({ text: currentPool[0].text, author: currentPool[0].author, solver: currentSpeaker, time: duration, round: round });
-        
         scores[turnTeam]++;
         currentPool.shift();
         shuffle(currentPool);
-        
         if (turnTeam === 'A') indexA = (indexA + 1) % playersA.length;
         else indexB = (indexB + 1) % playersB.length;
-
         document.getElementById('relay-to-name').innerText = (turnTeam === 'A') ? playersA[indexA] : playersB[indexB];
         document.getElementById('relay-overlay').classList.remove('hidden');
         document.getElementById('word-area').classList.add('hidden');
@@ -314,8 +326,6 @@ body {
         showScreen('result-screen');
         document.getElementById('winner-text').innerText = scores.A > scores.B ? "Aチーム勝利！" : (scores.B > scores.A ? "Bチーム勝利！" : "引き分け！");
         document.getElementById('final-scores').innerText = `最終スコア A: ${scores.A} | B: ${scores.B}`;
-
-        // プレイヤーランク (TOP3)
         const pStats = {};
         solveRecords.forEach(r => {
             if(!pStats[r.solver]) pStats[r.solver] = {t:0, c:0};
@@ -323,8 +333,6 @@ body {
         });
         const pRank = Object.keys(pStats).map(n => ({n, avg: pStats[n].t / pStats[n].c})).sort((a,b)=>a.avg-b.avg).slice(0,3);
         document.getElementById('player-ranking').innerHTML = pRank.map((p,i)=>`<div class="stats-item"><span>${i+1}位. ${p.n}</span><span>平均 ${p.avg.toFixed(1)}秒</span></div>`).join('') || "記録なし";
-
-        // 単語ランク (TOP3)
         const wStats = {};
         solveRecords.forEach(r => {
             if(!wStats[r.text]) wStats[r.text] = {t:0, c:0, a:r.author};
@@ -332,8 +340,6 @@ body {
         });
         const wRank = Object.keys(wStats).map(txt => ({txt, avg: wStats[txt].t / wStats[txt].c, a: wStats[txt].a})).sort((a,b)=>a.avg-b.avg);
         document.getElementById('word-ranking').innerHTML = wRank.slice(0,3).map((w,i)=>`<div class="stats-item"><span>${i+1}位. ${w.txt}</span><span>${w.avg.toFixed(1)}秒</span></div>`).join('') || "記録なし";
-
-        // 全単語リスト
         document.getElementById('all-words-list').innerHTML = wRank.map(w => `<div class="stats-box"><div class="stats-item"><strong>${w.txt}</strong><span>by ${w.a}</span></div><div style="font-size:12px; color:#666;">平均正解スピード: ${w.avg.toFixed(2)}秒</div></div>`).join('');
     }
 
@@ -343,16 +349,20 @@ body {
             [array[i], array[j]] = [array[j], array[i]];
         }
     }
+
+    // --- スマホの「引っ張って更新」を物理的にロックするスクリプト ---
+    let startY = 0;
     document.addEventListener('touchstart', (e) => {
-        if (e.touches.length > 1) return; // 二本指操作（ズーム）は許可
-        this.startY = e.touches[0].pageY;
+        startY = e.touches[0].pageY;
     }, { passive: false });
 
     document.addEventListener('touchmove', (e) => {
         const y = e.touches[0].pageY;
-        // 画面の最上部でさらに下に引っ張ろうとしたらキャンセル
-        if (window.scrollY <= 0 && y > this.startY) {
-            e.preventDefault();
+        const scroller = document.querySelector('.card');
+        
+        // カードの最上部でさらに下に引っ張ろうとしたときだけキャンセル
+        if (scroller.scrollTop <= 0 && y > startY) {
+            if (e.cancelable) e.preventDefault();
         }
     }, { passive: false });
 </script>
