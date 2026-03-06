@@ -5,15 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>3 ROUNDS WORD GAME</title>
     <style>
-        /* 画面全体のスクロール（引っ張り更新）を禁止する設定 */
         html, body { 
             overflow: hidden; 
             height: 100%; 
             width: 100%; 
             margin: 0; 
             padding: 0; 
-            overscroll-behavior-y: none; /* Chrome/Android用 */
-            position: fixed; /* iOS Safari用：画面を固定して引っ張らせない */
+            overscroll-behavior-y: none; 
+            position: fixed; 
         }
 
         body { 
@@ -33,12 +32,12 @@
             box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
             width: 90%; 
             max-width: 400px; 
-            height: 90vh; /* 画面に収まる高さ */
+            height: 90vh; 
             display: flex; 
             flex-direction: column; 
             position: relative; 
             box-sizing: border-box;
-            overflow-y: auto; /* カード内だけは必要ならスクロール可能にする */
+            overflow-y: auto; 
         }
 
         .hidden { display: none; }
@@ -52,7 +51,6 @@
         .setting-group { background: #f8f9fa; padding: 15px; border-radius: 12px; margin-bottom: 15px; text-align: left; }
         .setting-label { font-weight: bold; font-size: 14px; color: #555; display: block; margin-bottom: 5px; }
 
-        /* スイッチのデザイン */
         .switch { position: relative; display: inline-block; width: 50px; height: 24px; vertical-align: middle; margin-left: 10px; }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 24px; }
@@ -70,8 +68,9 @@
         .stats-item { display: flex; justify-content: space-between; font-size: 13px; padding: 6px 0; border-bottom: 1px dashed #eee; }
         .error-hint { color: #dc3545; font-size: 12px; margin-top: -5px; margin-bottom: 10px; height: 15px; }
 
-        /* 「正解！」ボタンの位置調整 */
         #action-buttons { margin-top: 60px; }
+        /* 残り単語数のバッジ */
+        .word-counter { font-size: 14px; color: #666; background: #eee; padding: 4px 10px; border-radius: 10px; margin-left: 10px; vertical-align: middle; }
     </style>
 </head>
 <body>
@@ -121,7 +120,10 @@
 
     <div id="game-screen" class="hidden">
         <div id="game-team-tag" class="team-tag"></div>
-        <div style="font-size:24px; color:red; font-weight:bold;">残り: <span id="time-left"></span>秒</div>
+        <div style="font-size:20px; font-weight:bold;">
+            <span style="color:red;">残り: <span id="time-left"></span>秒</span>
+            <span class="word-counter">あと <span id="remaining-words-count"></span> 個</span>
+        </div>
         <div id="relay-overlay" class="hidden">
             <div class="relay-msg">正解！👏<br>次は <strong id="relay-to-name"></strong> さん！</div>
             <button onclick="showNextWord()">スマホを受け取った！</button>
@@ -181,7 +183,6 @@
     function showScreen(id) {
         document.querySelectorAll('.card > div').forEach(d => d.classList.add('hidden'));
         document.getElementById(id).classList.remove('hidden');
-        // 画面切り替え時に一番上に戻す
         document.querySelector('.card').scrollTop = 0;
     }
 
@@ -197,12 +198,10 @@
             if (team === 'A') return showInputFor('B', 0);
             else return startRoundSetup();
         }
-        
         const tag = document.getElementById('input-team-tag');
         tag.innerText = team + "チーム";
         tag.className = "team-tag team-" + team.toLowerCase();
         document.getElementById('input-user-title').innerText = `プレイヤー ${idx + 1}`;
-        
         const nameInput = document.getElementById('user-name');
         if(!isNameOn) {
             nameInput.value = `${team}チーム${idx + 1}`;
@@ -211,7 +210,6 @@
             nameInput.value = "";
             nameInput.readOnly = false;
         }
-        
         const container = document.getElementById('word-inputs-container');
         container.innerHTML = "";
         const wCount = document.getElementById('words-count').value;
@@ -276,6 +274,7 @@
         document.getElementById('time-left').innerText = timeLeft;
         document.getElementById('game-team-tag').innerText = turnTeam + "チーム";
         document.getElementById('game-team-tag').className = "team-tag team-" + turnTeam.toLowerCase();
+        updateWordCount();
         showNextWord();
         timer = setInterval(() => {
             timeLeft--;
@@ -289,11 +288,14 @@
         }, 1000);
     }
 
+    function updateWordCount() {
+        document.getElementById('remaining-words-count').innerText = currentPool.length;
+    }
+
     function showNextWord() {
+        // ここでの判定は、リレー（次の方へ）が押された時のみ機能
         if (currentPool.length === 0) {
-            clearInterval(timer);
-            alert("ラウンド終了！"); round++;
-            return startRoundSetup();
+            return finishRound();
         }
         document.getElementById('relay-overlay').classList.add('hidden');
         document.getElementById('word-area').classList.remove('hidden');
@@ -314,12 +316,32 @@
         solveRecords.push({ text: currentPool[0].text, author: currentPool[0].author, solver: currentSpeaker, time: duration, round: round });
         scores[turnTeam]++;
         currentPool.shift();
+        updateWordCount(); // 数を減らす
+        
+        // ★修正ポイント：単語がなくなったら即終了
+        if (currentPool.length === 0) {
+            clearInterval(timer);
+            setTimeout(() => {
+                alert("すべての単語をクリア！ラウンド終了です。");
+                round++;
+                startRoundSetup();
+            }, 300); // 少し余韻を残して終了
+            return;
+        }
+
         shuffle(currentPool);
         if (turnTeam === 'A') indexA = (indexA + 1) % playersA.length;
         else indexB = (indexB + 1) % playersB.length;
         document.getElementById('relay-to-name').innerText = (turnTeam === 'A') ? playersA[indexA] : playersB[indexB];
         document.getElementById('relay-overlay').classList.remove('hidden');
         document.getElementById('word-area').classList.add('hidden');
+    }
+
+    function finishRound() {
+        clearInterval(timer);
+        alert("ラウンド終了！"); 
+        round++;
+        startRoundSetup();
     }
 
     function showFinalResults() {
@@ -350,7 +372,6 @@
         }
     }
 
-    // --- スマホの「引っ張って更新」を物理的にロックするスクリプト ---
     let startY = 0;
     document.addEventListener('touchstart', (e) => {
         startY = e.touches[0].pageY;
@@ -359,8 +380,6 @@
     document.addEventListener('touchmove', (e) => {
         const y = e.touches[0].pageY;
         const scroller = document.querySelector('.card');
-        
-        // カードの最上部でさらに下に引っ張ろうとしたときだけキャンセル
         if (scroller.scrollTop <= 0 && y > startY) {
             if (e.cancelable) e.preventDefault();
         }
