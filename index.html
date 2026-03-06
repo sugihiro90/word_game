@@ -69,6 +69,7 @@
         <div id="input-team-tag" class="team-tag"></div>
         <h2 id="input-user-title"></h2>
         <input type="text" id="user-name" placeholder="名前を入力してください" oninput="validateForm()">
+        <input type="text" id="user-name" placeholder="名前(最大10字)" maxlength="10" oninput="validateForm()">
         <div id="word-inputs-container"></div>
         <p class="error-hint" id="input-error"></p>
         <button id="save-btn" onclick="saveCurrentPlayer()" disabled>登録して次へ</button>
@@ -189,12 +190,22 @@
     }
 
     function validateForm() {
-        const name = document.getElementById('user-name').value.trim();
-        const words = document.querySelectorAll('.word-input');
-        const allFilled = name !== "" && Array.from(words).every(w => w.value.trim() !== "");
-        document.getElementById('save-btn').disabled = !allFilled;
+    const name = document.getElementById('user-name').value.trim();
+    const words = document.querySelectorAll('.word-input');
+    
+    // 名前のチェック条件を10文字以下に変更
+    const isNameOk = name !== "" && name.length <= 10;
+    // 単語の入力チェック（単語の20字制限は、inputタグのmaxLengthで自動ガードされています）
+    const allWordsFilled = Array.from(words).every(w => w.value.trim() !== "");
+    const allFilled = isNameOk && allWordsFilled;
+    document.getElementById('save-btn').disabled = !allFilled;
+    // エラーメッセージも少し親切に
+    if (!isNameOk && name !== "") {
+        document.getElementById('input-error').innerText = "名前は10文字以内で入力してください";
+    } else {
         document.getElementById('input-error').innerText = allFilled ? "" : "全て入力してください";
     }
+}
 
     function saveCurrentPlayer() {
         const teamMatch = document.getElementById('input-team-tag').innerText;
