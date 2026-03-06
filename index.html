@@ -6,14 +6,15 @@
     <title>3 ROUNDS WORD GAME</title>
     <style>
         body { font-family: 'Helvetica Neue', Arial, sans-serif; text-align: center; background: #f0f4f8; margin: 0; padding: 20px; color: #333; }
-        .card { background: white; padding: 30px 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); max-width: 450px; margin: auto; min-height: 500px; display: flex; flex-direction: column; }
+        .card { background: white; padding: 30px 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); max-width: 450px; margin: auto; min-height: 550px; display: flex; flex-direction: column; }
         .hidden { display: none; }
         button { background: #007bff; color: white; border: none; padding: 16px; font-size: 16px; border-radius: 12px; cursor: pointer; margin: 8px 0; width: 100%; font-weight: bold; transition: 0.2s; }
         button:active { transform: scale(0.98); }
+        button:disabled { background: #ccc; cursor: not-allowed; }
         button.secondary { background: #6c757d; }
         button.outline { background: transparent; border: 2px solid #007bff; color: #007bff; }
         
-        select, input { padding: 12px; font-size: 16px; width: 90%; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; background: white; }
+        select, input { padding: 12px; font-size: 16px; width: 90%; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; background: white; box-sizing: border-box; }
         .setting-group { background: #f8f9fa; padding: 15px; border-radius: 12px; margin-bottom: 15px; text-align: left; }
         .setting-label { font-weight: bold; font-size: 14px; color: #555; display: block; margin-bottom: 5px; }
 
@@ -21,9 +22,11 @@
         .team-a { background: #e67e22; }
         .team-b { background: #9b59b6; }
 
-        .word-display { font-size: 30px; font-weight: bold; margin: 20px 0; min-height: 120px; display: flex; align-items: center; justify-content: center; border: 3px solid #eee; border-radius: 15px; background: #fff; }
+        .word-display { font-size: 30px; font-weight: bold; margin: 20px 0; min-height: 120px; display: flex; align-items: center; justify-content: center; border: 3px solid #eee; border-radius: 15px; background: #fff; padding: 10px; }
         .stats-box { text-align: left; background: #fff; border: 1px solid #eee; border-radius: 12px; padding: 15px; margin-bottom: 20px; }
         .stats-item { display: flex; justify-content: space-between; font-size: 13px; padding: 5px 0; border-bottom: 1px dashed #eee; }
+        
+        .error-msg { color: #dc3545; font-size: 12px; font-weight: bold; margin-bottom: 5px; height: 18px; }
     </style>
 </head>
 <body>
@@ -37,31 +40,24 @@
         </div>
     </div>
 
-    <div id="rule-screen" class="hidden">
-        <h2>ルール</h2>
-        <div style="text-align:left; font-size:14px; line-height:1.6; background:#f8f9fa; padding:15px; border-radius:10px; margin-bottom:15px;">
-            同じ単語リストで3回戦います。<br><br>
-            <strong>R1：説明</strong> (言葉で伝える)<br>
-            <strong>R2：一言</strong> (ヒントは1単語だけ)<br>
-            <strong>R3：ジェスチャー</strong> (無言で動く)
-        </div>
-        <button class="secondary" onclick="showScreen('title-screen')">戻る</button>
-    </div>
-
     <div id="setup-screen" class="hidden">
         <h2>対戦設定</h2>
         <div class="setting-group">
-            <span class="setting-label">Aチームの人数 (オレンジ)</span>
+            <span class="setting-label">Aチームの人数 (2〜10人)</span>
             <select id="count-a"></select>
-            <span class="setting-label">Bチームの人数 (パープル)</span>
+            <span class="setting-label">Bチームの人数 (2〜10人)</span>
             <select id="count-b"></select>
         </div>
         <div class="setting-group">
             <span class="setting-label">1人あたりの単語数</span>
             <select id="words-count"></select>
         </div>
-        <div style="margin: 10px 0; font-size: 14px;">
-            <input type="checkbox" id="show-author-setting" checked style="width:auto;"> 最後に名前を表示する
+        <div class="setting-group">
+            <span class="setting-label">プレイヤー名の設定</span>
+            <select id="name-mode">
+                <option value="manual">自分で名前を入力する</option>
+                <option value="auto">自動 (Aチーム1, Aチーム2...)</option>
+            </select>
         </div>
         <button onclick="initPlayers()">次へ</button>
     </div>
@@ -69,8 +65,11 @@
     <div id="input-screen" class="hidden">
         <div id="input-team-tag" class="team-tag"></div>
         <h2 id="input-user-title"></h2>
-        <input type="text" id="user-name" placeholder="プレイヤー名を入力">
+        <div id="name-input-area">
+            <input type="text" id="user-name" placeholder="プレイヤー名を入力" oninput="validateInputs()">
+        </div>
         <div id="word-inputs-container"></div>
+        <div class="error-msg" id="validation-error"></div>
         <button id="save-btn" onclick="saveCurrentPlayer()">登録して次へ</button>
     </div>
 
@@ -105,6 +104,17 @@
         </div>
         <button onclick="location.reload()">タイトルに戻る</button>
     </div>
+
+    <div id="rule-screen" class="hidden">
+        <h2>ルール</h2>
+        <div style="text-align:left; font-size:14px; line-height:1.6; background:#f8f9fa; padding:15px; border-radius:10px; margin-bottom:15px;">
+            同じ単語リストで3回戦います。<br><br>
+            <strong>R1：説明</strong> (言葉で伝える)<br>
+            <strong>R2：一言</strong> (ヒントは1単語だけ)<br>
+            <strong>R3：ジェスチャー</strong> (無言で動く)
+        </div>
+        <button class="secondary" onclick="showScreen('title-screen')">戻る</button>
+    </div>
 </div>
 
 <script>
@@ -112,34 +122,31 @@
         const sel = document.getElementById(id);
         for(let i=min; i<=max; i++) {
             let opt = document.createElement('option');
-            opt.value = i; opt.text = i + (id.includes('count') ? '人' : '個');
+            opt.value = i;
+            let unit = (id === 'words-count') ? '個' : '人';
+            opt.text = i + unit;
             if(i===2 && id.includes('count')) opt.selected = true;
             if(i===3 && id==='words-count') opt.selected = true;
             sel.appendChild(opt);
         }
     }
-    createOptions('count-a', 1, 10);
-    createOptions('count-b', 1, 10);
+    createOptions('count-a', 2, 10); // 最低2人
+    createOptions('count-b', 2, 10); // 最低2人
     createOptions('words-count', 1, 5);
 
     let playersA = [], playersB = [], allWordObjects = [], solveRecords = [];
     let currentPool = [], scores = {A:0, B:0}, round = 1;
     let turnTeam = 'A', indexA = 0, indexB = 0;
-    let timer, timeLeft, startTime, showAuthor;
-
-    const roundData = [
-        { name: "Round 1: 説明", desc: "言葉で説明して！(単語そのものはNG)" },
-        { name: "Round 2: 一言", desc: "ヒントは「一単語」だけ！" },
-        { name: "Round 3: ジェスチャー", desc: "声を出さずに動きだけで！" }
-    ];
+    let timer, timeLeft, startTime, nameMode;
 
     function showScreen(id) {
         document.querySelectorAll('.card > div').forEach(d => d.classList.add('hidden'));
         document.getElementById(id).classList.remove('hidden');
+        window.scrollTo(0,0);
     }
 
     function initPlayers() {
-        showAuthor = document.getElementById('show-author-setting').checked;
+        nameMode = document.getElementById('name-mode').value;
         playersA = []; playersB = []; allWordObjects = [];
         showInputFor('A', 0);
     }
@@ -155,7 +162,16 @@
         tag.innerText = team + "チーム";
         tag.className = "team-tag team-" + team.toLowerCase();
         document.getElementById('input-user-title').innerText = `プレイヤー ${idx + 1} の登録`;
-        document.getElementById('user-name').value = "";
+        
+        const nameInputArea = document.getElementById('name-input-area');
+        const nameInput = document.getElementById('user-name');
+        if(nameMode === 'auto') {
+            nameInputArea.classList.add('hidden');
+            nameInput.value = `${team}チーム${idx + 1}`;
+        } else {
+            nameInputArea.classList.remove('hidden');
+            nameInput.value = "";
+        }
         
         const container = document.getElementById('word-inputs-container');
         container.innerHTML = "";
@@ -164,18 +180,52 @@
             const inp = document.createElement('input');
             inp.placeholder = `単語 ${i+1}`;
             inp.className = "word-input";
+            inp.oninput = validateInputs;
             container.appendChild(inp);
         }
         showScreen('input-screen');
-        
-        window.saveCurrentPlayer = () => {
-            const name = document.getElementById('user-name').value.trim() || `Player ${idx+1}`;
-            const words = document.querySelectorAll('.word-input');
-            if (team === 'A') playersA.push(name); else playersB.push(name);
-            words.forEach(w => allWordObjects.push({text: w.value.trim(), author: name}));
-            showInputFor(team, idx + 1);
-        };
+        validateInputs();
     }
+
+    function validateInputs() {
+        const name = document.getElementById('user-name').value.trim();
+        const wordInputs = document.querySelectorAll('.word-input');
+        const allWordsFilled = Array.from(wordInputs).every(input => input.value.trim() !== "");
+        const nameFilled = name !== "";
+        
+        const btn = document.getElementById('save-btn');
+        const error = document.getElementById('validation-error');
+        
+        if (nameFilled && allWordsFilled) {
+            btn.disabled = false;
+            error.innerText = "";
+        } else {
+            btn.disabled = true;
+            error.innerText = "名前と全ての単語を入力してください";
+        }
+    }
+
+    function saveCurrentPlayer() {
+        const teamMatch = document.getElementById('input-team-tag').innerText;
+        const team = teamMatch.includes('A') ? 'A' : 'B';
+        const idxText = document.getElementById('input-user-title').innerText;
+        const idx = parseInt(idxText.match(/\d+/)[0]) - 1;
+
+        const name = document.getElementById('user-name').value.trim();
+        const words = document.querySelectorAll('.word-input');
+        
+        if (team === 'A') playersA.push(name); else playersB.push(name);
+        words.forEach(w => allWordObjects.push({text: w.value.trim(), author: name}));
+        
+        showInputFor(team, idx + 1);
+    }
+
+    // --- ゲーム進行ロジック (前回の救済措置・分析機能含む) ---
+    const roundData = [
+        { name: "Round 1: 説明", desc: "言葉で説明して！(単語そのものはNG)" },
+        { name: "Round 2: 一言", desc: "ヒントは「一単語」だけ！" },
+        { name: "Round 3: ジェスチャー", desc: "声を出さずに動きだけで伝える！" }
+    ];
 
     function startRoundSetup() {
         if (round > 3) return showFinalResults();
@@ -204,7 +254,6 @@
         document.getElementById('time-left').innerText = timeLeft;
         document.getElementById('game-team-tag').innerText = turnTeam + "チーム";
         document.getElementById('game-team-tag').className = "team-tag team-" + turnTeam.toLowerCase();
-        
         setupWord();
         timer = setInterval(() => {
             timeLeft--;
@@ -247,7 +296,6 @@
         
         if (turnTeam === 'A') indexA = (indexA + 1) % playersA.length;
         else indexB = (indexB + 1) % playersB.length;
-
         setupWord();
     }
 
@@ -259,18 +307,18 @@
         const pStats = {};
         solveRecords.forEach(r => {
             if(!pStats[r.solver]) pStats[r.solver] = {t:0, c:0};
-            pStats[r.solver].t += r.time; pStats[r.solver].c++;
+            pStats[r.solver].t += r.time; pStats[r.solver].count = (pStats[r.solver].count || 0) + 1;
         });
-        const pRank = Object.keys(pStats).map(n => ({n, avg: pStats[n].t / pStats[n].c})).sort((a,b)=>a.avg-b.avg);
+        const pRank = Object.keys(pStats).map(n => ({n, avg: pStats[n].t / pStats[n].count})).sort((a,b)=>a.avg-b.avg);
         document.getElementById('player-ranking').innerHTML = pRank.map((p,i)=>`<div class="stats-item"><span>${i+1}. ${p.n}</span><span>${p.avg.toFixed(1)}s</span></div>`).join('');
 
         const wStats = {};
         solveRecords.forEach(r => {
-            if(!wStats[r.text]) wStats[r.text] = {t:0, c:0, a:r.author};
-            wStats[r.text].t += r.time; wStats[r.text].c++;
+            if(!wStats[r.text]) wStats[r.text] = {t:0, count:0, a:r.author};
+            wStats[r.text].t += r.time; wStats[r.text].count++;
         });
-        const wRank = Object.keys(wStats).map(txt => ({txt, avg: wStats[txt].t / wStats[txt].c, a: wStats[txt].a})).sort((a,b)=>a.avg-b.avg);
-        document.getElementById('word-ranking').innerHTML = wRank.slice(0,10).map((w,i)=>`<div class="stats-item"><span>${i+1}. ${w.txt}${showAuthor?' <small>('+w.a+')</small>':''}</span><span>${w.avg.toFixed(1)}s</span></div>`).join('');
+        const wRank = Object.keys(wStats).map(txt => ({txt, avg: wStats[txt].t / wStats[txt].count, a: wStats[txt].a})).sort((a,b)=>a.avg-b.avg);
+        document.getElementById('word-ranking').innerHTML = wRank.slice(0,10).map((w,i)=>`<div class="stats-item"><span>${i+1}. ${w.txt} <small>(${w.a})</small></span><span>${w.avg.toFixed(1)}s</span></div>`).join('');
     }
 
     function shuffle(array) {
