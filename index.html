@@ -193,7 +193,7 @@
         const words = document.querySelectorAll('.word-input');
         const allFilled = name !== "" && Array.from(words).every(w => w.value.trim() !== "");
         document.getElementById('save-btn').disabled = !allFilled;
-        document.getElementById('input-error').innerText = allFilled ? "" : "名前と全ての単語を入力してください";
+        document.getElementById('input-error').innerText = allFilled ? "" : "全て入力してください";
     }
 
     function saveCurrentPlayer() {
@@ -211,7 +211,7 @@
 
     const roundData = [
         { name: "Round 1: 説明", desc: "言葉で説明して！(単語そのものはNG)", time: 60 },
-        { name: "Round 2: 一言", desc: "ヒントは「一単語」だけ！", time: 30 },
+        { name: "Round 2: 一単語", desc: "ヒントは「一単語」だけ！", time: 30 },
         { name: "Round 3: ジェスチャー", desc: "声を出さずに動きだけで伝える！", time: 30 }
     ];
 
