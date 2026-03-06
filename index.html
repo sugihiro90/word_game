@@ -96,7 +96,7 @@
             <span class="setting-label">プレイヤー名の入力
                 <label class="switch"><input type="checkbox" id="name-mode-switch" checked><span class="slider"></span></label>
             </span>
-            <small id="mode-desc">ON: 自由に名前をつける / OFF: 自動採番</small>
+            <small id="mode-desc">ON: 手動入力 / OFF: 自動採番</small>
         </div>
         <button onclick="initPlayers()">単語入力へ進む</button>
     </div>
@@ -322,7 +322,7 @@
         if (currentPool.length === 0) {
             clearInterval(timer);
             setTimeout(() => {
-                alert("すべての単語をクリア！ラウンド終了です。");
+                alert("ラウンド終了！");
                 round++;
                 startRoundSetup();
             }, 300); // 少し余韻を残して終了
