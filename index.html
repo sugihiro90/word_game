@@ -66,8 +66,6 @@
         .relay-msg { font-size: 20px; color: #d35400; font-weight: bold; margin: 15px 0; padding: 15px; background: #fff3cd; border-radius: 12px; border: 2px dashed #ffab00; }
         .stats-box { text-align: left; background: #fff; border: 1px solid #eee; border-radius: 12px; padding: 15px; margin-bottom: 15px; }
         .stats-item { display: flex; justify-content: space-between; font-size: 13px; padding: 6px 0; border-bottom: 1px dashed #eee; }
-        .error-hint { color: #dc3545; font-size: 12px; margin-top: -5px; margin-bottom: 10px; height: 15px; }
-
         #action-buttons { margin-top: 60px; }
         .word-counter { font-size: 14px; color: #666; background: #eee; padding: 4px 10px; border-radius: 10px; margin-left: 10px; vertical-align: middle; }
         .interim-score-box { background: #fdfdfd; border: 1px solid #eee; padding: 10px; border-radius: 10px; margin: 10px 0; font-weight: bold; font-size: 16px; }
@@ -110,7 +108,7 @@
         <h2 id="input-user-title"></h2>
         <input type="text" id="user-name" placeholder="名前(最大10字)" maxlength="10" oninput="validateForm()">
         <div id="word-inputs-container"></div>
-        <p class="error-hint" id="input-error"></p>
+        <p class="error-hint" id="input-error" style="color:red; font-size:12px; height:15px;"></p>
         <button id="save-btn" onclick="saveCurrentPlayer()" disabled>登録して次へ</button>
     </div>
 
@@ -145,7 +143,6 @@
     <div id="result-screen" class="hidden">
         <h1 id="winner-text"></h1>
         <div id="final-scores" style="font-size:18px; margin-bottom:15px;"></div>
-        
         <div class="stats-box">
             <div style="font-weight:bold; border-bottom:2px solid #007bff; margin-bottom:8px;">🏆 表現上手 TOP3</div>
             <div id="player-ranking"></div>
@@ -203,7 +200,6 @@
     function showScreen(id) {
         document.querySelectorAll('.card > div').forEach(d => d.classList.add('hidden'));
         document.getElementById(id).classList.remove('hidden');
-        document.querySelector('.card').scrollTop = 0;
     }
 
     function initPlayers() {
@@ -232,7 +228,6 @@
         for(let i=0; i<wCount; i++) {
             const inp = document.createElement('input');
             inp.placeholder = `単語 ${i+1}`;
-            inp.maxLength = 20;
             inp.className = "word-input";
             inp.oninput = validateForm;
             container.appendChild(inp);
@@ -268,7 +263,6 @@
             scoreEl.classList.remove('hidden');
             if (isNewRound && scores.A !== scores.B) turnTeam = (scores.A < scores.B) ? 'A' : 'B';
         } else { scoreEl.classList.add('hidden'); }
-
         if (isNewRound || currentPool.length === 0) currentPool = [...allWordObjects];
         shuffle(currentPool);
         showScreen('ready-screen');
@@ -309,7 +303,6 @@
         document.getElementById('relay-overlay').classList.add('hidden');
         document.getElementById('word-area').classList.remove('hidden');
         document.getElementById('current-speaker-name').innerText = (turnTeam === 'A') ? playersA[indexA] : playersB[indexB];
-        
         const wordDisplay = document.getElementById('current-word');
         wordDisplay.innerHTML = `<button class="outline" onclick="reveal()">タップして表示</button>`;
         wordDisplay.onclick = null;
@@ -320,8 +313,8 @@
         const wordDisplay = document.getElementById('current-word');
         if (wordDisplay.querySelector('button')) {
             startTime = Date.now();
-            wordDisplay.innerText = currentPool[0].text;
-            wordDisplay.onclick = reveal;
+            wordDisplay.innerHTML = `<span style="cursor:pointer; display:flex; align-items:center; justify-content:center; width:100%; height:100%;">${currentPool[0].text}</span>`;
+            wordDisplay.onclick = reveal; 
             document.getElementById('action-buttons').classList.remove('hidden');
         } else {
             wordDisplay.innerHTML = `<button class="outline" onclick="reveal()">タップして表示</button>`;
@@ -382,15 +375,6 @@
             [array[i], array[j]] = [array[j], array[i]];
         }
     }
-
-    let startY = 0;
-    document.addEventListener('touchstart', (e) => { startY = e.touches[0].pageY; }, { passive: false });
-    document.addEventListener('touchmove', (e) => {
-        const y = e.touches[0].pageY;
-        const scroller = document.querySelector('.card');
-        if (scroller.scrollTop <= 0 && y > startY) if (e.cancelable) e.preventDefault();
-    }, { passive: false });
 </script>
 </body>
 </html>
-
