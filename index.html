@@ -62,7 +62,7 @@
         .team-a { background: #e67e22; }
         .team-b { background: #9b59b6; }
 
-        .word-display { font-size: 28px; font-weight: bold; margin: 20px 0; min-height: 100px; display: flex; align-items: center; justify-content: center; border: 3px solid #eee; border-radius: 15px; background: #fff; padding: 10px; line-height: 1.2; }
+        .word-display { font-size: 28px; font-weight: bold; margin: 20px 0; min-height: 100px; display: flex; align-items: center; justify-content: center; border: 3px solid #eee; border-radius: 15px; background: #fff; padding: 10px; line-height: 1.2; user-select: none; -webkit-user-select: none; }
         .relay-msg { font-size: 20px; color: #d35400; font-weight: bold; margin: 15px 0; padding: 15px; background: #fff3cd; border-radius: 12px; border: 2px dashed #ffab00; }
         .stats-box { text-align: left; background: #fff; border: 1px solid #eee; border-radius: 12px; padding: 15px; margin-bottom: 15px; }
         .stats-item { display: flex; justify-content: space-between; font-size: 13px; padding: 6px 0; border-bottom: 1px dashed #eee; }
@@ -166,16 +166,10 @@
 </div>
 
 <script>
-    // --- スリープ防止機能 (Wake Lock API) ---
     let wakeLock = null;
     const requestWakeLock = async () => {
-        try {
-            if ('wakeLock' in navigator) {
-                wakeLock = await navigator.wakeLock.request('screen');
-            }
-        } catch (err) {
-            console.error(`Wake Lock error: ${err.message}`);
-        }
+        try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } 
+        catch (err) { console.error(`Wake Lock error: ${err.message}`); }
     };
     document.addEventListener('visibilitychange', async () => {
         if (wakeLock !== null && document.visibilityState === 'visible') await requestWakeLock();
@@ -213,7 +207,7 @@
     }
 
     function initPlayers() {
-        requestWakeLock(); // スリープ防止開始
+        requestWakeLock();
         isNameOn = document.getElementById('name-mode-switch').checked;
         playersA = []; playersB = []; allWordObjects = []; scores = {A:0, B:0}; round = 1; indexA = 0; indexB = 0;
         showInputFor('A', 0);
@@ -223,23 +217,15 @@
         const count = parseInt(document.getElementById('count-' + team.toLowerCase()).value);
         if (idx >= count) {
             if (team === 'A') return showInputFor('B', 0);
-            else {
-                currentPool = [];
-                return startRoundSetup(true); 
-            }
+            else { currentPool = []; return startRoundSetup(true); }
         }
         const tag = document.getElementById('input-team-tag');
         tag.innerText = team + "チーム";
         tag.className = "team-tag team-" + team.toLowerCase();
         document.getElementById('input-user-title').innerText = `プレイヤー ${idx + 1}`;
         const nameInput = document.getElementById('user-name');
-        if(!isNameOn) {
-            nameInput.value = `${team}チーム${idx + 1}`;
-            nameInput.readOnly = true;
-        } else {
-            nameInput.value = "";
-            nameInput.readOnly = false;
-        }
+        if(!isNameOn) { nameInput.value = `${team}チーム${idx + 1}`; nameInput.readOnly = true; } 
+        else { nameInput.value = ""; nameInput.readOnly = false; }
         const container = document.getElementById('word-inputs-container');
         container.innerHTML = "";
         const wCount = document.getElementById('words-count').value;
@@ -276,30 +262,20 @@
 
     function startRoundSetup(isNewRound = false) {
         if (round > 3) return showFinalResults();
-        
         const scoreEl = document.getElementById('interim-score');
         if (round > 1) {
             scoreEl.innerText = `暫定スコア A: ${scores.A} | B: ${scores.B}`;
             scoreEl.classList.remove('hidden');
-            // 新ラウンド開始時のみ、負けているチームから
-            if (isNewRound && scores.A !== scores.B) {
-                turnTeam = (scores.A < scores.B) ? 'A' : 'B';
-            }
-        } else {
-            scoreEl.classList.add('hidden');
-        }
+            if (isNewRound && scores.A !== scores.B) turnTeam = (scores.A < scores.B) ? 'A' : 'B';
+        } else { scoreEl.classList.add('hidden'); }
 
-        if (isNewRound || currentPool.length === 0) {
-            currentPool = [...allWordObjects];
-        }
-        
+        if (isNewRound || currentPool.length === 0) currentPool = [...allWordObjects];
         shuffle(currentPool);
         showScreen('ready-screen');
         const name = (turnTeam === 'A') ? playersA[indexA] : playersB[indexB];
         document.getElementById('next-player-name').innerText = name;
         document.getElementById('round-info').innerText = roundData[round-1].name;
         document.getElementById('round-desc').innerText = roundData[round-1].desc;
-        
         const rTag = document.getElementById('current-team-tag');
         rTag.innerText = turnTeam + "チーム";
         rTag.className = "team-tag team-" + turnTeam.toLowerCase();
@@ -313,7 +289,6 @@
         document.getElementById('game-team-tag').className = "team-tag team-" + turnTeam.toLowerCase();
         updateWordCount();
         showNextWord();
-        
         if(timer) clearInterval(timer);
         timer = setInterval(() => {
             timeLeft--;
@@ -327,23 +302,31 @@
         }, 1000);
     }
 
-    function updateWordCount() {
-        document.getElementById('remaining-words-count').innerText = currentPool.length;
-    }
+    function updateWordCount() { document.getElementById('remaining-words-count').innerText = currentPool.length; }
 
     function showNextWord() {
         if (currentPool.length === 0) return finishRound();
         document.getElementById('relay-overlay').classList.add('hidden');
         document.getElementById('word-area').classList.remove('hidden');
         document.getElementById('current-speaker-name').innerText = (turnTeam === 'A') ? playersA[indexA] : playersB[indexB];
+        
+        const wordDisplay = document.getElementById('current-word');
+        wordDisplay.innerHTML = `<button class="outline" onclick="reveal()">タップして表示</button>`;
+        wordDisplay.onclick = null;
         document.getElementById('action-buttons').classList.add('hidden');
-        document.getElementById('current-word').innerHTML = `<button class="outline" onclick="reveal()">タップして表示</button>`;
     }
 
     function reveal() {
-        startTime = Date.now();
-        document.getElementById('current-word').innerText = currentPool[0].text;
-        document.getElementById('action-buttons').classList.remove('hidden');
+        const wordDisplay = document.getElementById('current-word');
+        if (wordDisplay.querySelector('button')) {
+            startTime = Date.now();
+            wordDisplay.innerText = currentPool[0].text;
+            wordDisplay.onclick = reveal;
+            document.getElementById('action-buttons').classList.remove('hidden');
+        } else {
+            wordDisplay.innerHTML = `<button class="outline" onclick="reveal()">タップして表示</button>`;
+            wordDisplay.onclick = null;
+        }
     }
 
     function correctAnswer() {
@@ -353,36 +336,29 @@
         scores[turnTeam]++;
         currentPool.shift();
         updateWordCount();
-        
         if (currentPool.length === 0) {
             clearInterval(timer);
-            setTimeout(() => {
-                alert("ラウンド終了！");
-                round++;
-                startRoundSetup(true);
-            }, 300);
+            setTimeout(() => { alert("ラウンド終了！"); round++; startRoundSetup(true); }, 300);
             return;
         }
-
         shuffle(currentPool);
         if (turnTeam === 'A') indexA = (indexA + 1) % playersA.length;
         else indexB = (indexB + 1) % playersB.length;
         document.getElementById('relay-to-name').innerText = (turnTeam === 'A') ? playersA[indexA] : playersB[indexB];
         document.getElementById('relay-overlay').classList.remove('hidden');
         document.getElementById('word-area').classList.add('hidden');
+        document.getElementById('current-word').onclick = null;
     }
 
     function finishRound() {
         clearInterval(timer);
-        alert("ラウンド終了！"); 
-        round++;
-        startRoundSetup(true);
+        alert("ラウンド終了！"); round++; startRoundSetup(true);
     }
 
     function showFinalResults() {
         showScreen('result-screen');
         document.getElementById('winner-text').innerText = scores.A > scores.B ? "Aチーム勝利！" : (scores.B > scores.A ? "Bチーム勝利！" : "引き分け！");
-        document.getElementById('final-scores').innerText = `最終スコア Aチーム: ${scores.A} | Bチーム: ${scores.B}`;
+        document.getElementById('final-scores').innerText = `最終スコア A: ${scores.A} | B: ${scores.B}`;
         const pStats = {};
         solveRecords.forEach(r => {
             if(!pStats[r.solver]) pStats[r.solver] = {t:0, c:0};
