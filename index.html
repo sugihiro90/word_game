@@ -5,197 +5,110 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>マッタンゴ - 3 ROUNDS WORD GAME</title>
     <style>
-        html, body { 
-            overflow: hidden; 
-            height: 100%; 
-            width: 100%; 
-            margin: 0; 
-            padding: 0; 
-            overscroll-behavior-y: none; 
-            position: fixed; 
-        }
-
-        body { 
-            font-family: 'Helvetica Neue', Arial, sans-serif; 
-            text-align: center; 
-            background: #f0f4f8; 
-            color: #333; 
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .card { 
-            background: white; 
-            padding: 30px 20px; 
-            border-radius: 20px; 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
-            width: 90%; 
-            max-width: 400px; 
-            height: 90vh; 
-            display: flex; 
-            flex-direction: column; 
-            position: relative; 
-            box-sizing: border-box;
-            overflow-y: auto; 
-        }
-
+        html, body { overflow: hidden; height: 100%; width: 100%; margin: 0; padding: 0; overscroll-behavior-y: none; position: fixed; }
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; text-align: center; background: #f0f4f8; color: #333; display: flex; align-items: center; justify-content: center; }
+        .card { background: white; padding: 30px 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 90%; max-width: 400px; height: 90vh; display: flex; flex-direction: column; position: relative; box-sizing: border-box; overflow-y: auto; }
         .hidden { display: none; }
         button { background: #007bff; color: white; border: none; padding: 16px; font-size: 16px; border-radius: 12px; cursor: pointer; margin: 8px 0; width: 100%; font-weight: bold; transition: 0.2s; }
         button:disabled { background: #ccc; cursor: not-allowed; }
-        button.secondary { background: #6c757d; }
         button.outline { background: transparent; border: 2px solid #007bff; color: #007bff; }
-        
         select, input { padding: 12px; font-size: 16px; width: 100%; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; background: white; box-sizing: border-box; }
-        input:read-only { background: #eee; color: #777; }
         .setting-group { background: #f8f9fa; padding: 15px; border-radius: 12px; margin-bottom: 15px; text-align: left; }
         .setting-label { font-weight: bold; font-size: 14px; color: #555; display: block; margin-bottom: 5px; }
-
-        .switch { position: relative; display: inline-block; width: 50px; height: 24px; vertical-align: middle; margin-left: 10px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 24px; }
-        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
-        input:checked + .slider { background-color: #007bff; }
-        input:checked + .slider:before { transform: translateX(26px); }
-
         .team-tag { display: inline-block; padding: 5px 20px; border-radius: 20px; color: white; font-weight: bold; margin-bottom: 10px; }
         .team-a { background: #e67e22; }
         .team-b { background: #9b59b6; }
-
-        .word-display { font-size: 28px; font-weight: bold; margin: 20px 0; min-height: 100px; display: flex; align-items: center; justify-content: center; border: 3px solid #eee; border-radius: 15px; background: #fff; padding: 10px; line-height: 1.2; user-select: none; -webkit-user-select: none; }
+        .word-display { font-size: 28px; font-weight: bold; margin: 20px 0; min-height: 120px; display: flex; align-items: center; justify-content: center; border: 3px solid #eee; border-radius: 15px; background: #fff; padding: 10px; line-height: 1.2; user-select: none; -webkit-user-select: none; cursor: pointer; }
         .relay-msg { font-size: 20px; color: #d35400; font-weight: bold; margin: 15px 0; padding: 15px; background: #fff3cd; border-radius: 12px; border: 2px dashed #ffab00; }
         .stats-box { text-align: left; background: #fff; border: 1px solid #eee; border-radius: 12px; padding: 15px; margin-bottom: 15px; }
         .stats-item { display: flex; justify-content: space-between; font-size: 13px; padding: 6px 0; border-bottom: 1px dashed #eee; }
-        #action-buttons { margin-top: 60px; }
-        .word-counter { font-size: 14px; color: #666; background: #eee; padding: 4px 10px; border-radius: 10px; margin-left: 10px; vertical-align: middle; }
-        .interim-score-box { background: #fdfdfd; border: 1px solid #eee; padding: 10px; border-radius: 10px; margin: 10px 0; font-weight: bold; font-size: 16px; }
     </style>
 </head>
 <body>
 
 <div class="card">
     <div id="title-screen">
-        <h1 style="color:#007bff; margin-top:40px; font-size: 42px; line-height: 1.1;">マッタンゴ</h1>
+        <h1 style="color:#007bff; margin-top:40px; font-size: 42px;">マッタンゴ</h1>
         <button onclick="showScreen('setup-screen')">ゲームスタート</button>
     </div>
 
     <div id="setup-screen" class="hidden">
         <h2>ゲーム設定</h2>
         <div class="setting-group">
-            <span class="setting-label">チーム人数 (各2〜10人)</span>
-            <div style="margin-bottom: 10px;">
-                Aチーム: <select id="count-a" style="width:60%"></select>
-            </div>
-            <div>
-                Bチーム: <select id="count-b" style="width:60%"></select>
-            </div>
+            <span class="setting-label">チーム人数</span>
+            A: <select id="count-a"></select> B: <select id="count-b"></select>
         </div>
         <div class="setting-group">
             <span class="setting-label">1人あたりの単語数</span>
             <select id="words-count"></select>
         </div>
-        <div class="setting-group">
-            <span class="setting-label">プレイヤー名の入力
-                <label class="switch"><input type="checkbox" id="name-mode-switch" checked><span class="slider"></span></label>
-            </span>
-            <small id="mode-desc">ON: 手動入力 / OFF: 自動採番</small>
-        </div>
-        <button onclick="initPlayers()">単語入力へ進む</button>
+        <button onclick="initPlayers()">次へ</button>
     </div>
 
     <div id="input-screen" class="hidden">
         <div id="input-team-tag" class="team-tag"></div>
         <h2 id="input-user-title"></h2>
-        <input type="text" id="user-name" placeholder="名前(最大10字)" maxlength="10" oninput="validateForm()">
+        <input type="text" id="user-name" placeholder="名前">
         <div id="word-inputs-container"></div>
-        <p class="error-hint" id="input-error" style="color:red; font-size:12px; height:15px;"></p>
-        <button id="save-btn" onclick="saveCurrentPlayer()" disabled>登録して次へ</button>
+        <button id="save-btn" onclick="saveCurrentPlayer()">登録して次へ</button>
     </div>
 
     <div id="ready-screen" class="hidden">
         <div id="current-team-tag" class="team-tag"></div>
         <h2 id="round-info"></h2>
-        <div id="interim-score" class="interim-score-box hidden"></div>
+        <div id="interim-score" style="margin:10px 0; font-weight:bold;"></div>
         <div class="relay-msg">次は <strong id="next-player-name"></strong> さん！</div>
-        <p id="round-desc" style="color:#666; font-size:14px;"></p>
         <button onclick="startTurn()">スタート！</button>
     </div>
 
     <div id="game-screen" class="hidden">
         <div id="game-team-tag" class="team-tag"></div>
-        <div style="font-size:20px; font-weight:bold;">
-            <span style="color:red;">残り: <span id="time-left"></span>秒</span>
-            <span class="word-counter">あと <span id="remaining-words-count"></span> 個</span>
-        </div>
+        <div>残り: <span id="time-left"></span>秒 | あと <span id="remaining-words-count"></span>個</div>
         <div id="relay-overlay" class="hidden">
-            <div class="relay-msg">正解！👏<br>次は <strong id="relay-to-name"></strong> さん！</div>
-            <button onclick="showNextWord()">スマホを受け取った！</button>
+            <div class="relay-msg">正解！次は <strong id="relay-to-name"></strong> さん！</div>
+            <button onclick="showNextWord()">受け取った！</button>
         </div>
         <div id="word-area">
-            <p style="margin-bottom:5px; font-size:14px;">出題者: <strong id="current-speaker-name"></strong></p>
+            <p>出題者: <strong id="current-speaker-name"></strong></p>
             <div class="word-display" id="current-word"></div>
             <div id="action-buttons" class="hidden">
-                <button style="background:#28a745;" onclick="correctAnswer()">正解！</button>
+                <button style="background:#28a745;" onclick="correctAnswer(event)">正解！</button>
             </div>
         </div>
     </div>
 
     <div id="result-screen" class="hidden">
         <h1 id="winner-text"></h1>
-        <div id="final-scores" style="font-size:18px; margin-bottom:15px;"></div>
-        <div class="stats-box">
-            <div style="font-weight:bold; border-bottom:2px solid #007bff; margin-bottom:8px;">🏆 表現上手 TOP3</div>
-            <div id="player-ranking"></div>
-        </div>
-        <div class="stats-box">
-            <div style="font-weight:bold; border-bottom:2px solid #007bff; margin-bottom:8px;">💎 かんたん単語 TOP3</div>
-            <div id="word-ranking"></div>
-        </div>
-        <button class="outline" onclick="showScreen('all-words-screen')">すべての単語データを見る</button>
-        <button onclick="location.reload()">タイトルに戻る</button>
-    </div>
-
-    <div id="all-words-screen" class="hidden">
-        <h2>全単語データ</h2>
-        <div id="all-words-list" style="max-height:400px; overflow-y:auto; margin-bottom:20px;"></div>
-        <button class="secondary" onclick="showScreen('result-screen')">結果に戻る</button>
+        <div id="final-scores"></div>
+        <div id="player-ranking" class="stats-box"></div>
+        <button onclick="location.reload()">最初から</button>
     </div>
 </div>
 
 <script>
-    let wakeLock = null;
-    const requestWakeLock = async () => {
-        try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } 
-        catch (err) { console.error(`Wake Lock error: ${err.message}`); }
-    };
-    document.addEventListener('visibilitychange', async () => {
-        if (wakeLock !== null && document.visibilityState === 'visible') await requestWakeLock();
-    });
+    let playersA = [], playersB = [], allWordObjects = [], solveRecords = [];
+    let currentPool = [], scores = {A:0, B:0}, round = 1;
+    let turnTeam = 'A', indexA = 0, indexB = 0;
+    let timer, timeLeft, startTime;
 
-    function createOptions(id, min, max) {
+    const roundData = [
+        { name: "Round 1: 説明", time: 60 },
+        { name: "Round 2: 一単語", time: 30 },
+        { name: "Round 3: ジェスチャー", time: 30 }
+    ];
+
+    function createOptions(id, min, max, def) {
         const sel = document.getElementById(id);
         for(let i=min; i<=max; i++) {
             let opt = document.createElement('option');
             opt.value = i; opt.text = i + (id==='words-count'?'個':'人');
-            if(i===2 && id.includes('count')) opt.selected = true;
-            if(i===3 && id==='words-count') opt.selected = true;
+            if(i===def) opt.selected = true;
             sel.appendChild(opt);
         }
     }
-    createOptions('count-a', 2, 10);
-    createOptions('count-b', 2, 10);
-    createOptions('words-count', 1, 5);
-
-    let playersA = [], playersB = [], allWordObjects = [], solveRecords = [];
-    let currentPool = [], scores = {A:0, B:0}, round = 1;
-    let turnTeam = 'A', indexA = 0, indexB = 0;
-    let timer, timeLeft, startTime, isNameOn;
-
-    const roundData = [
-        { name: "Round 1: 説明", desc: "言葉で説明して！(単語そのものはNG)", time: 60 },
-        { name: "Round 2: 一単語", desc: "ヒントは「一単語」だけ！", time: 30 },
-        { name: "Round 3: ジェスチャー", desc: "声を出さずに動きだけで伝える！", time: 30 }
-    ];
+    createOptions('count-a', 2, 10, 2);
+    createOptions('count-b', 2, 10, 2);
+    createOptions('words-count', 1, 5, 3);
 
     function showScreen(id) {
         document.querySelectorAll('.card > div').forEach(d => d.classList.add('hidden'));
@@ -203,8 +116,6 @@
     }
 
     function initPlayers() {
-        requestWakeLock();
-        isNameOn = document.getElementById('name-mode-switch').checked;
         playersA = []; playersB = []; allWordObjects = []; scores = {A:0, B:0}; round = 1; indexA = 0; indexB = 0;
         showInputFor('A', 0);
     }
@@ -215,13 +126,10 @@
             if (team === 'A') return showInputFor('B', 0);
             else { currentPool = []; return startRoundSetup(true); }
         }
-        const tag = document.getElementById('input-team-tag');
-        tag.innerText = team + "チーム";
-        tag.className = "team-tag team-" + team.toLowerCase();
+        document.getElementById('input-team-tag').innerText = team + "チーム";
+        document.getElementById('input-team-tag').className = "team-tag team-" + team.toLowerCase();
         document.getElementById('input-user-title').innerText = `プレイヤー ${idx + 1}`;
-        const nameInput = document.getElementById('user-name');
-        if(!isNameOn) { nameInput.value = `${team}チーム${idx + 1}`; nameInput.readOnly = true; } 
-        else { nameInput.value = ""; nameInput.readOnly = false; }
+        document.getElementById('user-name').value = `${team}チーム${idx+1}`;
         const container = document.getElementById('word-inputs-container');
         container.innerHTML = "";
         const wCount = document.getElementById('words-count').value;
@@ -229,67 +137,43 @@
             const inp = document.createElement('input');
             inp.placeholder = `単語 ${i+1}`;
             inp.className = "word-input";
-            inp.oninput = validateForm;
             container.appendChild(inp);
         }
         showScreen('input-screen');
-        validateForm();
-    }
-
-    function validateForm() {
-        const name = document.getElementById('user-name').value.trim();
-        const words = document.querySelectorAll('.word-input');
-        const isNameOk = name !== "" && name.length <= 10;
-        const allWordsFilled = Array.from(words).every(w => w.value.trim() !== "");
-        document.getElementById('save-btn').disabled = !(isNameOk && allWordsFilled);
     }
 
     function saveCurrentPlayer() {
-        const teamMatch = document.getElementById('input-team-tag').innerText;
-        const team = teamMatch.includes('A') ? 'A' : 'B';
+        const team = document.getElementById('input-team-tag').innerText.includes('A') ? 'A' : 'B';
         const name = document.getElementById('user-name').value.trim();
         const words = document.querySelectorAll('.word-input');
         if (team === 'A') playersA.push(name); else playersB.push(name);
         words.forEach(w => allWordObjects.push({text: w.value.trim(), author: name}));
-        const idx = (team === 'A' ? playersA : playersB).length;
-        showInputFor(team, idx);
+        showInputFor(team, (team === 'A' ? playersA : playersB).length);
     }
 
     function startRoundSetup(isNewRound = false) {
         if (round > 3) return showFinalResults();
-        const scoreEl = document.getElementById('interim-score');
-        if (round > 1) {
-            scoreEl.innerText = `暫定スコア A: ${scores.A} | B: ${scores.B}`;
-            scoreEl.classList.remove('hidden');
-            if (isNewRound && scores.A !== scores.B) turnTeam = (scores.A < scores.B) ? 'A' : 'B';
-        } else { scoreEl.classList.add('hidden'); }
-        if (isNewRound || currentPool.length === 0) currentPool = [...allWordObjects];
+        if (isNewRound && round > 1 && scores.A !== scores.B) turnTeam = (scores.A < scores.B) ? 'A' : 'B';
+        if (isNewRound) currentPool = [...allWordObjects];
         shuffle(currentPool);
-        showScreen('ready-screen');
-        const name = (turnTeam === 'A') ? playersA[indexA] : playersB[indexB];
-        document.getElementById('next-player-name').innerText = name;
+        document.getElementById('next-player-name').innerText = (turnTeam === 'A') ? playersA[indexA] : playersB[indexB];
         document.getElementById('round-info').innerText = roundData[round-1].name;
-        document.getElementById('round-desc').innerText = roundData[round-1].desc;
-        const rTag = document.getElementById('current-team-tag');
-        rTag.innerText = turnTeam + "チーム";
-        rTag.className = "team-tag team-" + turnTeam.toLowerCase();
+        document.getElementById('interim-score').innerText = `現在 A:${scores.A} B:${scores.B}`;
+        showScreen('ready-screen');
     }
 
     function startTurn() {
         showScreen('game-screen');
         timeLeft = roundData[round-1].time;
         document.getElementById('time-left').innerText = timeLeft;
-        document.getElementById('game-team-tag').innerText = turnTeam + "チーム";
-        document.getElementById('game-team-tag').className = "team-tag team-" + turnTeam.toLowerCase();
         updateWordCount();
         showNextWord();
-        if(timer) clearInterval(timer);
         timer = setInterval(() => {
             timeLeft--;
             document.getElementById('time-left').innerText = timeLeft;
             if (timeLeft <= 0) {
                 clearInterval(timer);
-                alert("タイムアップ！交代です。");
+                alert("タイムアップ！");
                 turnTeam = (turnTeam === 'A') ? 'B' : 'A';
                 startRoundSetup(false);
             }
@@ -299,74 +183,46 @@
     function updateWordCount() { document.getElementById('remaining-words-count').innerText = currentPool.length; }
 
     function showNextWord() {
-        if (currentPool.length === 0) return finishRound();
+        if (currentPool.length === 0) { clearInterval(timer); round++; return startRoundSetup(true); }
         document.getElementById('relay-overlay').classList.add('hidden');
         document.getElementById('word-area').classList.remove('hidden');
         document.getElementById('current-speaker-name').innerText = (turnTeam === 'A') ? playersA[indexA] : playersB[indexB];
-        const wordDisplay = document.getElementById('current-word');
-        wordDisplay.innerHTML = `<button class="outline" onclick="reveal()">タップして表示</button>`;
-        wordDisplay.onclick = null;
+        setWordHiddenState();
         document.getElementById('action-buttons').classList.add('hidden');
     }
 
-    function reveal() {
+    function setWordHiddenState() {
         const wordDisplay = document.getElementById('current-word');
-        if (wordDisplay.querySelector('button')) {
-            startTime = Date.now();
-            wordDisplay.innerHTML = `<span style="cursor:pointer; display:flex; align-items:center; justify-content:center; width:100%; height:100%;">${currentPool[0].text}</span>`;
-            wordDisplay.onclick = reveal; 
-            document.getElementById('action-buttons').classList.remove('hidden');
-        } else {
-            wordDisplay.innerHTML = `<button class="outline" onclick="reveal()">タップして表示</button>`;
-            wordDisplay.onclick = null;
-        }
+        wordDisplay.innerHTML = `<button class="outline">タップして表示</button>`;
+        wordDisplay.onclick = () => revealWord();
     }
 
-    function correctAnswer() {
+    function revealWord() {
+        startTime = Date.now();
+        const wordDisplay = document.getElementById('current-word');
+        wordDisplay.innerHTML = `<span>${currentPool[0].text}</span>`;
+        document.getElementById('action-buttons').classList.remove('hidden');
+        wordDisplay.onclick = () => setWordHiddenState();
+    }
+
+    function correctAnswer(e) {
+        e.stopPropagation(); // 枠のクリックイベント（隠す）が発動しないようにする
         const duration = (Date.now() - startTime) / 1000;
-        const currentSpeaker = (turnTeam === 'A') ? playersA[indexA] : playersB[indexB];
-        solveRecords.push({ text: currentPool[0].text, author: currentPool[0].author, solver: currentSpeaker, time: duration, round: round });
+        solveRecords.push({ solver: (turnTeam === 'A' ? playersA[indexA] : playersB[indexB]), time: duration });
         scores[turnTeam]++;
         currentPool.shift();
+        if (currentPool.length === 0) { clearInterval(timer); alert("全単語終了！"); round++; startRoundSetup(true); return; }
         updateWordCount();
-        if (currentPool.length === 0) {
-            clearInterval(timer);
-            setTimeout(() => { alert("ラウンド終了！"); round++; startRoundSetup(true); }, 300);
-            return;
-        }
-        shuffle(currentPool);
-        if (turnTeam === 'A') indexA = (indexA + 1) % playersA.length;
-        else indexB = (indexB + 1) % playersB.length;
+        if (turnTeam === 'A') indexA = (indexA + 1) % playersA.length; else indexB = (indexB + 1) % playersB.length;
         document.getElementById('relay-to-name').innerText = (turnTeam === 'A') ? playersA[indexA] : playersB[indexB];
         document.getElementById('relay-overlay').classList.remove('hidden');
         document.getElementById('word-area').classList.add('hidden');
-        document.getElementById('current-word').onclick = null;
-    }
-
-    function finishRound() {
-        clearInterval(timer);
-        alert("ラウンド終了！"); round++; startRoundSetup(true);
     }
 
     function showFinalResults() {
         showScreen('result-screen');
-        document.getElementById('winner-text').innerText = scores.A > scores.B ? "Aチーム勝利！" : (scores.B > scores.A ? "Bチーム勝利！" : "引き分け！");
-        document.getElementById('final-scores').innerText = `最終スコア A: ${scores.A} | B: ${scores.B}`;
-        const pStats = {};
-        solveRecords.forEach(r => {
-            if(!pStats[r.solver]) pStats[r.solver] = {t:0, c:0};
-            pStats[r.solver].t += r.time; pStats[r.solver].c++;
-        });
-        const pRank = Object.keys(pStats).map(n => ({n, avg: pStats[n].t / pStats[n].c})).sort((a,b)=>a.avg-b.avg).slice(0,3);
-        document.getElementById('player-ranking').innerHTML = pRank.map((p,i)=>`<div class="stats-item"><span>${i+1}位. ${p.n}</span><span>平均 ${p.avg.toFixed(1)}秒</span></div>`).join('') || "記録なし";
-        const wStats = {};
-        solveRecords.forEach(r => {
-            if(!wStats[r.text]) wStats[r.text] = {t:0, c:0, a:r.author};
-            wStats[r.text].t += r.time; wStats[r.text].c++;
-        });
-        const wRank = Object.keys(wStats).map(txt => ({txt, avg: wStats[txt].t / wStats[txt].c, a: wStats[txt].a})).sort((a,b)=>a.avg-b.avg);
-        document.getElementById('word-ranking').innerHTML = wRank.slice(0,3).map((w,i)=>`<div class="stats-item"><span>${i+1}位. ${w.txt}</span><span>${w.avg.toFixed(1)}秒</span></div>`).join('') || "記録なし";
-        document.getElementById('all-words-list').innerHTML = wRank.map(w => `<div class="stats-box"><div class="stats-item"><strong>${w.txt}</strong><span>by ${w.a}</span></div><div style="font-size:12px; color:#666;">平均スピード: ${w.avg.toFixed(2)}秒</div></div>`).join('');
+        document.getElementById('winner-text').innerText = scores.A > scores.B ? "Aチーム勝利！" : "Bチーム勝利！";
+        document.getElementById('final-scores').innerText = `A: ${scores.A}点 | B: ${scores.B}点`;
     }
 
     function shuffle(array) {
